@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class BaseConfig(BaseSettings):
     ENV_STATE: str | None = None
     model_config = SettingsConfigDict(
-        env_file='app/.env',
+        env_file='envs/.env',
         extra='ignore'
     )
 
@@ -29,12 +29,12 @@ class GlobalConfig(BaseConfig):
 
 class DevConfig(GlobalConfig):
     DEBUG: bool = True
-    model_config = SettingsConfigDict(env_prefix='DEV_')
+    model_config = SettingsConfigDict(env_file='envs/.dev.env', env_prefix='DEV_')
 
 
 class ProdConfig(GlobalConfig):
     DEBUG: bool = False
-    model_config = SettingsConfigDict(env_prefix='PROD_')
+    model_config = SettingsConfigDict(env_file='envs/.prod/env', env_prefix='PROD_')
 
 
 @lru_cache()
