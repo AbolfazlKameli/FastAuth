@@ -2,7 +2,7 @@ from fastapi import FastAPI, status, Request
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from .schemas import DataSchema
+from .schemas import DataSchema, HealthCheckResponse
 
 app = FastAPI(
     title='FastAuth',
@@ -20,6 +20,6 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     )
 
 
-@app.get('/health-check', status_code=status.HTTP_200_OK, response_model=DataSchema)
+@app.get('/health-check', status_code=status.HTTP_200_OK, response_model=DataSchema[HealthCheckResponse])
 async def health_check():
     return DataSchema(data={'status': 'OK'})
