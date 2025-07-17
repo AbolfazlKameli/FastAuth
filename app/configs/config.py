@@ -18,7 +18,7 @@ class GlobalConfig(BaseConfig):
     CELERY_BROKER_URL: str = 'redis://localhost:6379/1'
     CELERY_RESULT_BACKEND: str = 'redis://localhost:6379/2'
     EMAIL_HOSTNAME: str
-    EMAIL_PORT: int = 587
+    EMAIL_PORT: int
     EMAIL_USE_TLS: bool = True
     EMAIL_HOST_USERNAME: str
     EMAIL_HOST_PASSWORD: str
