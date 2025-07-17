@@ -24,6 +24,7 @@ class GlobalConfig(BaseConfig):
     EMAIL_USE_TLS: bool = True
     EMAIL_HOST_USERNAME: str
     EMAIL_HOST_PASSWORD: str
+    TIMEZONE: str
 
 
 class DevConfig(GlobalConfig):
