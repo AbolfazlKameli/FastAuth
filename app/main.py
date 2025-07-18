@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 
+from .configs.logging_config import setup_logging
 from .core.exceptions import register_exceptions
 from .core.lifecycle import lifespan
 from .core.router import include_routers
+
+setup_logging()
 
 app = FastAPI(
     title='FastAuth',
