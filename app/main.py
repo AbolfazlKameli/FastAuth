@@ -1,20 +1,8 @@
-from contextlib import asynccontextmanager
+from fastapi import FastAPI
 
-from fastapi import FastAPI, status, Request
-from fastapi.responses import JSONResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
-from .db.database import engine, Base
-from .schemas import DataSchema, HealthCheckResponse
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    yield
-
+from .core.exceptions import register_exceptions
+from .core.lifecycle import lifespan
+from .core.router import include_routers
 
 app = FastAPI(
     title='FastAuth',
@@ -23,16 +11,5 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-
-@app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    return JSONResponse(
-        content={"data": {'errors': exc.detail}},
-        status_code=exc.status_code,
-        headers=exc.headers,
-    )
-
-
-@app.get('/health-check', status_code=status.HTTP_200_OK, response_model=DataSchema[HealthCheckResponse])
-async def health_check():
-    return DataSchema(data={'status': 'OK'})
+register_exceptions(app)
+include_routers(app)
