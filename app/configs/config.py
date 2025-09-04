@@ -34,7 +34,7 @@ class DevConfig(GlobalConfig):
 
 class ProdConfig(GlobalConfig):
     DEBUG: bool = False
-    model_config = SettingsConfigDict(env_file='envs/.prod/env', env_prefix='PROD_')
+    model_config = SettingsConfigDict(env_file='envs/.prod.env', env_prefix='PROD_')
 
 
 @lru_cache()
