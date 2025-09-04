@@ -6,6 +6,9 @@ from .core.lifecycle import lifespan
 from .core.middlewares import register_middlewares
 from .core.router import include_routers
 
+# Importing models for sqlalchemy
+from .api.users.models import User  # noqa
+
 setup_logging()
 
 app = FastAPI(
