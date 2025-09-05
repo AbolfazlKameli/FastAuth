@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
-from app.configs.config import configs
+from app.core import configs
 
 engine = create_async_engine(
     url=configs.DATABASE_URL,
@@ -9,7 +9,7 @@ engine = create_async_engine(
     max_overflow=configs.DATABASE_MAX_OVERFLOW,
 )
 
-SessionLocal= async_sessionmaker(bind=engine)
+SessionLocal = async_sessionmaker(bind=engine)
 
 
 class Base(DeclarativeBase):

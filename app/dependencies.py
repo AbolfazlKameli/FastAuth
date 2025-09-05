@@ -4,8 +4,8 @@ from fastapi import Depends
 from redis import asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.cache.redis_handler import redis_fastapi
-from .db.database import SessionLocal
+from app.infrastructure.cache import redis_fastapi
+from app.infrastructure.db import SessionLocal
 
 
 async def get_db() -> AsyncSession:

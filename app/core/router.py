@@ -1,7 +1,7 @@
 from fastapi import FastAPI, status
 
-from app.api.users.routers import router as user_router
-from app.schemas import DataSchema, HealthCheckResponse
+from app.apps.users.routers import router as user_router
+from .schemas import DataSchema, HealthCheckResponse
 
 
 def include_routers(app: FastAPI):

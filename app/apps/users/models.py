@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from sqlalchemy.orm import mapped_column, Mapped
 import sqlalchemy as sa
+from sqlalchemy.orm import mapped_column, Mapped
 
-from app.db.database import Base
+from app.infrastructure.db import Base
 
 
 class User(Base):
