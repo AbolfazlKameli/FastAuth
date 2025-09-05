@@ -2,7 +2,6 @@ from sqlalchemy import Select, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import db_dependency
-from .middlewares import request_object
 
 
 class Paginator:
@@ -13,7 +12,6 @@ class Paginator:
         self.per_page = per_page
         self.limit = per_page * page
         self.offset = (page - 1) * per_page
-        self.request = request_object.get()
         # computed later
         self.number_of_pages = 0
         self.next_page = ''
