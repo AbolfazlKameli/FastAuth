@@ -1,12 +1,10 @@
 from fastapi import FastAPI
 
-from .configs.logging_config import setup_logging
-from .core.exceptions import register_exceptions
-from .core.lifecycle import lifespan
-from .core.router import include_routers
-
-# Importing models for sqlalchemy
-from .api.users.models import User  # noqa
+from app.apps.users.models import User  # noqa
+from app.core.configs.logging_config import setup_logging
+from app.core.exceptions import register_exceptions
+from app.core.lifecycle import lifespan
+from app.core.router import include_routers
 
 setup_logging()
 

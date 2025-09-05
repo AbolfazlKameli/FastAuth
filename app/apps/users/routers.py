@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, status, Query, Path
 
 from app.core.pagination import paginate
+from app.core.schemas import PaginatedResponse, DataSchema
 from app.dependencies import db_dependency
-from app.schemas import PaginatedResponse, DataSchema
 from .repository import get_all_users, get_user_by_id
 from .schemas import UserBase
 
