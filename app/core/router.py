@@ -1,6 +1,6 @@
 from fastapi import FastAPI, status
 
-from app.apps.users.routers import router as user_router
+from app.apps.users.router import router as user_router
 from .schemas import DataSchema, HealthCheckResponse
 
 

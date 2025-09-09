@@ -6,7 +6,7 @@ from app.core.pagination import paginate
 from app.core.schemas import PaginatedResponse, DataSchema
 from app.dependencies import db_dependency
 from .repository import get_all_users, get_user_by_id
-from .schemas import UserBase
+from .schemas import UserOut
 
 router = APIRouter(
     prefix='/users',
@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=DataSchema[PaginatedResponse[UserBase]], status_code=status.HTTP_200_OK)
+@router.get("", response_model=DataSchema[PaginatedResponse[UserOut]], status_code=status.HTTP_200_OK)
 async def list_users(
         db: db_dependency,
         page: Annotated[int, Query(ge=1)] = 1,
@@ -23,7 +23,7 @@ async def list_users(
     return DataSchema(data=await paginate(get_all_users(), db, page, per_page))
 
 
-@router.get("/{user_id}", response_model=DataSchema[UserBase], status_code=status.HTTP_200_OK)
+@router.get("/{user_id}", response_model=DataSchema[UserOut], status_code=status.HTTP_200_OK)
 async def get_user(db: db_dependency, user_id: Annotated[int, Path(ge=1)]):
     user = await get_user_by_id(db, user_id)
     return DataSchema(data=user)

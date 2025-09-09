@@ -1,13 +1,16 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class UserBase(BaseModel):
-    id: int
     username: str
-    email: str
+    email: EmailStr
     created_at: datetime
+
+
+class UserOut(UserBase):
+    id: int
 
 
 class UsersList(BaseModel):
