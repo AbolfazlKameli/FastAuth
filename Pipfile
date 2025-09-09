@@ -7,11 +7,11 @@ name = "pypi"
 fastapi = "*"
 uvicorn = "*"
 celery = "*"
-pydantic = "*"
 pydantic-settings = "*"
 sqlalchemy = "*"
 redis = "*"
 aiosqlite = "*"
+pydantic = {extras = ["email"], version = "*"}
 
 [dev-packages]
 
