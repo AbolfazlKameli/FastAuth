@@ -1,4 +1,4 @@
-from app.core.configs.settings import configs
+from src.core.configs.settings import configs
 
 CELERY_CONFIG = {
     'broker_url': configs.CELERY_BROKER_URL,

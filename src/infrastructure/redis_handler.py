@@ -1,6 +1,6 @@
 from redis import asyncio as redis
 
-from app.core import configs
+from src.core import configs
 
 fastapi_redis_pool = redis.ConnectionPool.from_url(
     url=configs.REDIS_URL,
