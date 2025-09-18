@@ -18,3 +18,7 @@ class PaginatedResponse(BaseModel, Generic[DataT]):
 
 class HealthCheckResponse(BaseModel):
     status: str
+
+
+class NotFoundResponse(BaseModel):
+    errors: str
