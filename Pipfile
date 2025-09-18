@@ -12,6 +12,7 @@ sqlalchemy = "*"
 redis = "*"
 aiosqlite = "*"
 pydantic = {extras = ["email"], version = "*"}
+alembic = "*"
 
 [dev-packages]
 
