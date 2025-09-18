@@ -10,7 +10,6 @@ class Paginator:
         self.query = query
         self.page = page
         self.per_page = per_page
-        self.limit = per_page * page
         self.offset = (page - 1) * per_page
         # computed later
         self.number_of_pages = 0
@@ -30,9 +29,10 @@ class Paginator:
     async def get_response(self) -> dict:
         return {
             'count': await self._get_total_count(),
+            'last_page': self.number_of_pages,
             'next_page': self._get_next_page(),
             'previous_page': self._get_previous_page(),
-            'items': [todo for todo in await self.session.scalars(self.query.limit(self.limit).offset(self.offset))]
+            'items': [todo for todo in await self.session.scalars(self.query.limit(self.per_page).offset(self.offset))]
         }
 
     def _get_number_of_pages(self, count: int) -> int:
