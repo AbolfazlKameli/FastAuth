@@ -13,6 +13,7 @@ redis = "*"
 aiosqlite = "*"
 pydantic = {extras = ["email"], version = "*"}
 alembic = "*"
+argon2-cffi = "*"
 
 [dev-packages]
 
