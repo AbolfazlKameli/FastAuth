@@ -1,3 +1,4 @@
+from datetime import timedelta
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -9,6 +10,11 @@ class BaseConfig(BaseSettings):
         env_file='envs/.env',
         extra='ignore'
     )
+
+
+class OTPSettings(BaseSettings):
+    OTP_EXPIRATION_TIME: timedelta = timedelta(minutes=2)
+    MAX_ATTEMPTS: int = 5
 
 
 class GlobalConfig(BaseConfig):
@@ -25,6 +31,7 @@ class GlobalConfig(BaseConfig):
     EMAIL_HOST_USERNAME: str
     EMAIL_HOST_PASSWORD: str
     TIMEZONE: str
+    OTP_SETTINGS: OTPSettings = OTPSettings()
 
 
 class DevConfig(GlobalConfig):
