@@ -75,9 +75,23 @@ async def request_otp_to_register(register_data: UserRegisterRequest, db: db_dep
 @router.post(
     "/register/verify",
     status_code=status.HTTP_201_CREATED,
-    response_model=DataSchema[UserRegisterResponse]
+    response_model=DataSchema[UserRegisterResponse],
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Error when email already exists."
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Error when OTP verification failed."
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Error when something unexpected happened."
+        }
+    }
 )
-async def validate_otp_code(request_data: OtpVerifyUserRegisterRequest, db: db_dependency):
+async def verify_otp_code(request_data: OtpVerifyUserRegisterRequest, db: db_dependency):
     otp_code = request_data.otp_code
     email = str(request_data.email)
     otp_obj = await get_otp_by_email(db, email)
