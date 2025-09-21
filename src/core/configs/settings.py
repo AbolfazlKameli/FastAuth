@@ -21,6 +21,7 @@ class GlobalConfig(BaseConfig):
     DATABASE_POOL_SIZE: int
     DATABASE_MAX_OVERFLOW: int
     DATABASE_URL: str = 'sqlite+aiosqlite:///db.sqlite3'
+    ALEMBIC_DATABASE_URL: str
     REDIS_URL: str = 'redis://localhost:6379/0'
     REDIS_MAX_CONNECTIONS: int
     CELERY_BROKER_URL: str = 'redis://localhost:6379/1'
