@@ -3,15 +3,19 @@ from random import randint
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
+from passlib.context import CryptContext
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.apps.users.repository import get_user_by_email
+from src.apps.users.models import User
+from src.apps.users.repository import get_user_by_email, create_user
 from src.apps.utils import get_or_create
 from src.core.configs.settings import configs
 from .models import Otp, OtpBlacklist
 from .repository import get_active_blacklist_by_email
 
 hasher = PasswordHasher()
+password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 async def check_blacklist_for_user(db: AsyncSession, email: str) -> str | None:
@@ -76,3 +80,21 @@ def is_otp_valid(otp_code: str, otp_obj: Otp) -> bool:
         return False
 
     return True
+
+
+def hash_password(password: str):
+    return password_context.hash(password)
+
+
+async def register_user(db: AsyncSession, email: str, username: str, password: str) -> User:
+    hashed_password = hash_password(password)
+    user = User(email=email, username=username, password=hashed_password)
+    try:
+        user = await create_user(db, user)
+    except IntegrityError:
+        await db.rollback()
+        raise ValueError("Duplicate entry or constraint violated")
+    except SQLAlchemyError as e:
+        await db.rollback()
+        raise RuntimeError(f"Database error: {e}")
+    return user
