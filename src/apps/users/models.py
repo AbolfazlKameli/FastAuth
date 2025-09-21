@@ -12,5 +12,5 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(sa.String(length=25), unique=True)
     email: Mapped[str] = mapped_column(sa.String(length=50), unique=True)
-    password: Mapped[str] = mapped_column(sa.String(length=50), nullable=False)
+    password: Mapped[str] = mapped_column(nullable=False)
     created_at: Mapped[datetime] = mapped_column(sa.DateTime, default=datetime.now)
