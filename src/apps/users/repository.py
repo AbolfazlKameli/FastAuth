@@ -26,3 +26,10 @@ async def user_exists_with_email_or_username(db: AsyncSession, email: str, usern
     username_result = username_stmt.scalar()
 
     return email_result or username_result
+
+
+async def create_user(db: AsyncSession, user: User) -> User:
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
