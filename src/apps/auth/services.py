@@ -53,3 +53,11 @@ async def generate_otp(db: AsyncSession, email: str) -> (Otp, str, str, bool, da
     )
 
     return obj, otp_code, hashed_code, is_new, expires_at
+
+
+async def refresh_otp_code(db: AsyncSession, otp: Otp, hashed_otp: str, expires_at: datetime):
+    otp.hashed_code = hashed_otp
+    otp.expires_at = expires_at
+    otp.attempts += 1
+    db.add(otp)
+    await db.commit()
