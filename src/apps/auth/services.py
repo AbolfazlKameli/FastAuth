@@ -2,6 +2,7 @@ from datetime import datetime
 from random import randint
 
 from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.apps.users.repository import get_user_by_email
@@ -61,3 +62,17 @@ async def refresh_otp_code(db: AsyncSession, otp: Otp, hashed_otp: str, expires_
     otp.attempts += 1
     db.add(otp)
     await db.commit()
+
+
+def is_otp_valid(otp_code: str, otp_obj: Otp) -> bool:
+    now = datetime.now()
+
+    if otp_obj is None or otp_obj.expires_at < now:
+        return False
+
+    try:
+        hasher.verify(otp_obj.hashed_code, otp_code)
+    except VerifyMismatchError:
+        return False
+
+    return True
