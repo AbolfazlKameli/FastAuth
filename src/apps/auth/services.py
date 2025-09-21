@@ -98,3 +98,8 @@ async def register_user(db: AsyncSession, email: str, username: str, password: s
         await db.rollback()
         raise RuntimeError(f"Database error: {e}")
     return user
+
+
+async def delete_otp(db: AsyncSession, otp: Otp):
+    await db.delete(otp)
+    await db.commit()
