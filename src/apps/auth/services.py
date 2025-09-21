@@ -24,14 +24,14 @@ async def check_blacklist_for_user(db: AsyncSession, email: str) -> str | None:
         response = f"You have benn blocked until {expiration_date_time}"
 
     if blacklist and blacklist.expires_at is None:
-        response = "You have benn permanently blocked. if you believe this is a mistake, please contact support."
+        response = "You have been permanently blocked. if you believe this is a mistake, please contact support."
 
     return response
 
 
 async def handle_user_blacklist(db: AsyncSession, email: str) -> str:
     await get_or_create(db, OtpBlacklist, email=email)
-    return "Too many requests. Your email has benn added to the blacklist."
+    return "Too many requests. Your email has been added to the blacklist."
 
 
 async def check_email_exists(db: AsyncSession, email: str) -> bool:
