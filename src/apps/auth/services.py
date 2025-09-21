@@ -4,11 +4,39 @@ from random import randint
 from argon2 import PasswordHasher
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.apps.users.repository import get_user_by_email
 from src.apps.utils import get_or_create
 from src.core.configs.settings import configs
-from .models import Otp
+from .models import Otp, OtpBlacklist
+from .repository import get_active_blacklist_by_email
 
 hasher = PasswordHasher()
+
+
+async def check_blacklist_for_user(db: AsyncSession, email: str) -> str | None:
+    now = datetime.now()
+
+    blacklist = await get_active_blacklist_by_email(db, email, now)
+    response: str | None = None
+
+    if blacklist and blacklist.expires_at is not None:
+        expiration_date_time = blacklist.expires_at.strftime("%Y-%m-%d %H:%M:%S")
+        response = f"You have benn blocked until {expiration_date_time}"
+
+    if blacklist and blacklist.expires_at is None:
+        response = "You have benn permanently blocked. if you believe this is a mistake, please contact support."
+
+    return response
+
+
+async def handle_user_blacklist(db: AsyncSession, email: str) -> str:
+    await get_or_create(db, OtpBlacklist, email=email)
+    return "Too many requests. Your email has benn added to the blacklist."
+
+
+async def check_email_exists(db: AsyncSession, email: str) -> bool:
+    user = await get_user_by_email(db, email)
+    return user is not None
 
 
 async def generate_otp(db: AsyncSession, email: str) -> (Otp, str, str, bool, datetime):
