@@ -21,5 +21,9 @@ class HealthCheckResponse(BaseModel):
     status: str
 
 
-class NotFoundResponse(BaseModel):
+class ErrorResponse(BaseModel):
     errors: str
+
+
+class SuccessResponse(BaseModel):
+    message: str

@@ -10,9 +10,13 @@ celery = "*"
 pydantic-settings = "*"
 sqlalchemy = "*"
 redis = "*"
-aiosqlite = "*"
 pydantic = {extras = ["email"], version = "*"}
 alembic = "*"
+argon2-cffi = "*"
+asyncpg = "*"
+psycopg2-binary = "*"
+passlib = "*"
+bcrypt = "==4.0.1"
 
 [dev-packages]
 

@@ -9,4 +9,7 @@ CELERY_CONFIG = {
     'task_time_limit': 90,
     'task_max_retries': 3,
     'task_default_retry_delay': 30,
+    'imports': (
+        'src.apps.tasks',
+    )
 }

@@ -1,0 +1,123 @@
+from fastapi import APIRouter, status, HTTPException
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+
+from src.apps.tasks import send_otp_code_email
+from src.apps.users.repository import user_exists_with_email_or_username
+from src.core.configs.settings import configs
+from src.core.schemas import DataSchema, ErrorResponse
+from src.dependencies import db_dependency
+from .repository import get_otp_by_email
+from .schemas import UserRegisterRequest, UserOTPResponse, OtpVerifyUserRegisterRequest, UserRegisterResponse
+from .services import (
+    check_blacklist_for_user,
+    check_email_exists,
+    generate_otp,
+    handle_user_blacklist,
+    refresh_otp_code,
+    is_otp_valid,
+    register_user,
+    delete_otp,
+)
+
+router = APIRouter(
+    prefix="/auth",
+    tags=["auth"]
+)
+
+
+@router.post(
+    "/register",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=DataSchema[UserOTPResponse],
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Error when email already exists."
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Error when user is blacklisted."
+        },
+        status.HTTP_429_TOO_MANY_REQUESTS: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Error when too many requests occurs."
+        }
+    }
+)
+async def request_otp_to_register(register_data: UserRegisterRequest, db: db_dependency):
+    email = str(register_data.email)
+
+    if (message := await check_blacklist_for_user(db, email)) is not None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=message)
+
+    if await check_email_exists(db, email):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists.")
+
+    otp_obj, otp_code, hashed_code, is_new, expires_at = await generate_otp(db, email)
+
+    if not is_new and otp_obj.attempts >= configs.OTP_SETTINGS.MAX_ATTEMPTS:
+        message = await handle_user_blacklist(db, email)
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=message)
+
+    if not is_new:
+        await refresh_otp_code(db, otp_obj, hashed_code, expires_at)
+
+    send_otp_code_email.delay(email, otp_code)
+
+    return {
+        "data": {
+            "message": "Verification email sent.",
+            "otp_valid_time": "120s"
+        }
+    }
+
+
+@router.post(
+    "/register/verify",
+    status_code=status.HTTP_201_CREATED,
+    response_model=DataSchema[UserRegisterResponse],
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Error when email already exists."
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Error when OTP verification failed."
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Error when something unexpected happened."
+        }
+    }
+)
+async def verify_otp_code(request_data: OtpVerifyUserRegisterRequest, db: db_dependency):
+    otp_code = request_data.otp_code
+    email = str(request_data.email)
+    otp_obj = await get_otp_by_email(db, email)
+
+    if not is_otp_valid(otp_code, otp_obj):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid or expired OTP code.")
+
+    if await user_exists_with_email_or_username(db, email, request_data.username):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username or email already taken.")
+
+    try:
+        user = await register_user(
+            db,
+            password=request_data.password.get_secret_value(),
+            email=email,
+            username=request_data.username
+        )
+    except (IntegrityError, SQLAlchemyError):
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error.")
+
+    await delete_otp(db, otp_obj)
+    await db.refresh(user)
+
+    return {
+        "data": {
+            "message": "User Registered successfully.",
+            "user": user
+        }
+    }

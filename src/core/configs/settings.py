@@ -1,3 +1,4 @@
+from datetime import timedelta
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -11,10 +12,16 @@ class BaseConfig(BaseSettings):
     )
 
 
+class OTPSettings(BaseSettings):
+    OTP_EXPIRATION_TIME: timedelta = timedelta(minutes=2)
+    MAX_ATTEMPTS: int = 5
+
+
 class GlobalConfig(BaseConfig):
     DATABASE_POOL_SIZE: int
     DATABASE_MAX_OVERFLOW: int
     DATABASE_URL: str = 'sqlite+aiosqlite:///db.sqlite3'
+    ALEMBIC_DATABASE_URL: str
     REDIS_URL: str = 'redis://localhost:6379/0'
     REDIS_MAX_CONNECTIONS: int
     CELERY_BROKER_URL: str = 'redis://localhost:6379/1'
@@ -25,6 +32,7 @@ class GlobalConfig(BaseConfig):
     EMAIL_HOST_USERNAME: str
     EMAIL_HOST_PASSWORD: str
     TIMEZONE: str
+    OTP_SETTINGS: OTPSettings = OTPSettings()
 
 
 class DevConfig(GlobalConfig):

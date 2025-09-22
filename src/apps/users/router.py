@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, status, Query, Path
 
-from src.core.schemas import PaginatedResponse, DataSchema, NotFoundResponse
+from src.core.schemas import PaginatedResponse, DataSchema, ErrorResponse
 from src.dependencies import db_dependency
 from .schemas import UserOut
 from .services import get_all_users_paginated, get_user_or_404
@@ -28,7 +28,7 @@ async def list_users(
     status_code=status.HTTP_200_OK,
     responses={
         status.HTTP_404_NOT_FOUND: {
-            "model": DataSchema[NotFoundResponse],
+            "model": DataSchema[ErrorResponse],
         },
     }
 )
