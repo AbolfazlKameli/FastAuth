@@ -11,7 +11,7 @@ setup_logging()
 app = FastAPI(
     title='FastAuth',
     summary='A simple authentication application written in FastAPI',
-    version='0.1.0',
+    version='0.2.0',
 )
 
 register_exceptions(app)
