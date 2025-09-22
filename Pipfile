@@ -17,6 +17,8 @@ asyncpg = "*"
 psycopg2-binary = "*"
 passlib = "*"
 bcrypt = "==4.0.1"
+python-jose = "*"
+pytz = "*"
 
 [dev-packages]
 
