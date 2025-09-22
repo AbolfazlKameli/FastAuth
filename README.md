@@ -1,4 +1,4 @@
-<h1 align="center">🚀 FastAPI Authentication Service</h1>
+<h1 align="center">🚀 FastAuth</h1>
 
 <p align="center">
 A lightweight authentication system built with <b>FastAPI</b>, featuring JWT, verification codes, blacklist, password reset/change and more.
