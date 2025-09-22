@@ -22,7 +22,7 @@ A lightweight authentication system built with <b>FastAPI</b>, featuring JWT, ve
 * 🗄 **PostgreSQL** database with migrations via Alembic
 * 🧾 **Pydantic** for request/response validation
 
----
+
 
 ## 🛠 Tech Stack
 
@@ -33,7 +33,6 @@ A lightweight authentication system built with <b>FastAPI</b>, featuring JWT, ve
 * **[Alembic](https://alembic.sqlalchemy.org/):** Database migrations
 * **[Pydantic](https://docs.pydantic.dev/):** Data validation & serialization
 
----
 
 ## ⚙️ Installation
 
@@ -56,7 +55,6 @@ Create a virtual environment & install dependencies:
 pipenv install 
 ```
 
----
 
 ## 📦 Database Migrations
 
@@ -66,7 +64,6 @@ Run migrations with Alembic:
 alembic upgrade head
 ```
 
----
 
 ## ▶️ Running the App
 
@@ -82,7 +79,6 @@ Start the Celery worker:
 celery -A src.infrastructure worker -l info  
 ```
 
----
 
 ## 📚 API Documentation
 
@@ -91,7 +87,6 @@ Once running, open your browser at:
 * Swagger UI → `http://localhost:8000/docs`
 * ReDoc → `http://localhost:8000/redoc`
 
----
 
 ## 🚀 Roadmap
 
@@ -100,13 +95,11 @@ Once running, open your browser at:
 * [ ] Social login (Google, GitHub, etc.)
 * [ ] Automatic tests
 
----
 
 ## 🤝 Contributing
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
 
----
 
 ## 📄 License
 
