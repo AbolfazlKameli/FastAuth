@@ -18,6 +18,7 @@ class OTPSettings(BaseSettings):
 
 
 class GlobalConfig(BaseConfig):
+    SECRET_KEY: str
     DATABASE_POOL_SIZE: int
     DATABASE_MAX_OVERFLOW: int
     DATABASE_URL: str = 'sqlite+aiosqlite:///db.sqlite3'

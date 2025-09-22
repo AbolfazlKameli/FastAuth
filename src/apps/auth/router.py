@@ -1,4 +1,6 @@
-from fastapi import APIRouter, status, HTTPException
+from datetime import timedelta
+
+from fastapi import APIRouter, status, HTTPException, Response
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from src.apps.tasks import send_otp_code_email
@@ -7,7 +9,14 @@ from src.core.configs.settings import configs
 from src.core.schemas import DataSchema, ErrorResponse
 from src.dependencies import db_dependency
 from .repository import get_otp_by_email
-from .schemas import UserRegisterRequest, UserOTPResponse, OtpVerifyUserRegisterRequest, UserRegisterResponse
+from .schemas import (
+    UserRegisterRequest,
+    UserOTPResponse,
+    OtpVerifyUserRegisterRequest,
+    UserRegisterResponse,
+    UserLoginRequest,
+    UserLoginResponse
+)
 from .services import (
     check_blacklist_for_user,
     check_email_exists,
@@ -17,6 +26,8 @@ from .services import (
     is_otp_valid,
     register_user,
     delete_otp,
+    create_jwt_token,
+    authenticate_user
 )
 
 router = APIRouter(
@@ -121,3 +132,28 @@ async def verify_otp_code(request_data: OtpVerifyUserRegisterRequest, db: db_dep
             "user": user
         }
     }
+
+
+@router.post(
+    "/login",
+    status_code=status.HTTP_200_OK,
+    response_model=DataSchema[UserLoginResponse],
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Error when email or password is incorrect."
+        }
+    }
+)
+async def user_login(login_data: UserLoginRequest, db: db_dependency, response: Response):
+    email = str(login_data.email)
+    user = await authenticate_user(db, email, login_data.password.get_secret_value())
+
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email or password incorrect.")
+
+    refresh_token = create_jwt_token(user.id, email, "refresh", timedelta(hours=24))
+    response.set_cookie(key="refresh_auth", value=refresh_token, httponly=True)
+
+    access_token = create_jwt_token(user.id, email, "access")
+    return {"data": {"message": "User logged in Successfully.", "access_token": access_token}}

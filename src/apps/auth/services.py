@@ -1,8 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta, UTC
 from random import randint
+from typing import Literal
 
+import pytz
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
+from jose import jwt
 from passlib.context import CryptContext
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -84,6 +87,30 @@ def is_otp_valid(otp_code: str, otp_obj: Otp) -> bool:
 
 def hash_password(password: str):
     return password_context.hash(password)
+
+
+async def authenticate_user(db: AsyncSession, email: str, password: str) -> User | None:
+    user = await get_user_by_email(db, email)
+
+    if user is None:
+        return None
+
+    if not password_context.verify(password, user.password):
+        return None
+
+    return user
+
+
+def create_jwt_token(
+        user_id: int,
+        email: str,
+        token_type: Literal["access", "refresh"],
+        expires_at: timedelta = timedelta(minutes=15)
+) -> str:
+    payload = {"user_id": user_id, "email": email, "token_type": token_type}
+    exp = datetime.now(tz=pytz.timezone("Asia/Tehran")) + expires_at
+    payload.update({"exp": exp})
+    return jwt.encode(payload, configs.SECRET_KEY, algorithm="HS256")
 
 
 async def register_user(db: AsyncSession, email: str, username: str, password: str) -> User:
