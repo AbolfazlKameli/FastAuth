@@ -4,7 +4,6 @@ from src.core import configs
 
 fastapi_redis_pool = redis.ConnectionPool.from_url(
     url=configs.REDIS_URL,
-    decode_responses=True,
     max_connections=configs.REDIS_MAX_CONNECTIONS,
 )
 
