@@ -5,7 +5,7 @@ from redis import asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.infrastructure.database import SessionLocal
-from src.infrastructure.redis_handler import redis_fastapi
+from src.infrastructure.redis_pool import redis_fastapi
 
 
 async def get_db() -> AsyncSession:
