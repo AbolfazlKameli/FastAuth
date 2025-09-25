@@ -20,7 +20,7 @@ LOGGING_CONFIG = {
         'file_handler': {
             'class': 'logging.handlers.RotatingFileHandler',
             'formatter': 'file_formatter',
-            'level': 'WARNING',
+            'level': 'DEBUG',
             'filename': 'logs/app/app.log',
             'maxBytes': 10_000_000,
             'backupCount': 5,
@@ -33,7 +33,14 @@ LOGGING_CONFIG = {
     'loggers': {
         'app': {
             'level': 'DEBUG',
-        }
+            'handlers': ['console_handler', 'file_handler'],
+            'propagate': False,
+        },
+        'uvicorn': {
+            'level': 'INFO',
+            'handlers': ['console_handler', 'file_handler'],
+            'propagate': False,
+        },
     }
 }
 

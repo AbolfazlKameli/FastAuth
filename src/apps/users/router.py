@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, status, Query, Path
+from fastapi_cache.decorator import cache
 
 from src.core.schemas import PaginatedResponse, DataSchema, ErrorResponse
 from src.dependencies import db_dependency
@@ -14,12 +15,13 @@ router = APIRouter(
 
 
 @router.get("", response_model=DataSchema[PaginatedResponse[UserOut]], status_code=status.HTTP_200_OK)
+@cache(expire=60)
 async def list_users(
         db: db_dependency,
         page: Annotated[int, Query(ge=1)] = 1,
         per_page: Annotated[int, Query(ge=1, le=100)] = 10,
 ):
-    return DataSchema(data=await get_all_users_paginated(db, page, per_page))
+    return {"data": await get_all_users_paginated(db, page, per_page)}
 
 
 @router.get(
@@ -32,6 +34,7 @@ async def list_users(
         },
     }
 )
+@cache(expire=60)
 async def get_user(db: db_dependency, user_id: Annotated[int, Path(ge=1)]):
     user = await get_user_or_404(db, user_id)
-    return DataSchema(data=user)
+    return {"data": user}
