@@ -19,6 +19,7 @@ passlib = "*"
 bcrypt = "==4.0.1"
 python-jose = "*"
 pytz = "*"
+fastapi-cache2 = {extras = ["redis"], version = "*"}
 
 [dev-packages]
 
