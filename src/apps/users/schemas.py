@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr
 
+from .models import UserRoles
+
 
 class UserBase(BaseModel):
     username: str
@@ -11,7 +13,4 @@ class UserBase(BaseModel):
 
 class UserOut(UserBase):
     id: int
-
-
-class UsersList(BaseModel):
-    users: list[UserBase]
+    role: UserRoles

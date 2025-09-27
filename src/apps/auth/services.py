@@ -1,24 +1,51 @@
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta
 from random import randint
-from typing import Literal
+from typing import Literal, Annotated
 
 import pytz
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from jose import jwt
+from fastapi import Depends, status
+from fastapi import Request, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jose import jwt, JWTError
 from passlib.context import CryptContext
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.apps.users.models import User
-from src.apps.users.repository import get_user_by_email, create_user
+from src.apps.users.models import User, UserRoles
+from src.apps.users.repository import get_user_by_email, create_user, get_user_by_id
 from src.apps.utils import get_or_create
 from src.core.configs.settings import configs
+from src.dependencies import db_dependency
 from .models import Otp, OtpBlacklist
 from .repository import get_active_blacklist_by_email
 
 hasher = PasswordHasher()
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+class JWTBearer(HTTPBearer):
+    def __init__(self, auto_error: bool = True):
+        super(JWTBearer, self).__init__(auto_error=auto_error)
+
+    async def __call__(self, request: Request):
+        credentials: HTTPAuthorizationCredentials = await super(JWTBearer, self).__call__(request)
+        if credentials:
+            if not credentials.scheme == "Bearer":
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication scheme.")
+
+            try:
+                decode_access_token(credentials.credentials)
+            except JWTError as e:
+                raise e
+
+            return credentials.credentials
+        else:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing credentials.")
+
+
+oauth_schema = JWTBearer()
 
 
 async def check_blacklist_for_user(db: AsyncSession, email: str) -> str | None:
@@ -130,3 +157,49 @@ async def register_user(db: AsyncSession, email: str, username: str, password: s
 async def delete_otp(db: AsyncSession, otp: Otp):
     await db.delete(otp)
     await db.commit()
+
+
+def decode_access_token(token: Annotated[str, Depends(oauth_schema)]):
+    try:
+        payload = jwt.decode(token, configs.SECRET_KEY, algorithms=["HS256"])
+        user_id: int = payload.get("user_id")
+        token_type: str = payload.get("token_type")
+
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication failed, Invalid token.",
+            )
+
+        if token_type != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication failed, invalid token type."
+            )
+
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed, invalid or expired token.",
+        )
+
+    return user_id
+
+
+async def get_authenticated_user(db: db_dependency, user_id: Annotated[int, Depends(decode_access_token)]):
+    user = await get_user_by_id(db, user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed, invalid user.",
+        )
+    return user
+
+
+async def get_admin_user(user: Annotated[User, Depends(get_authenticated_user)]):
+    if user.role.value != UserRoles.admin.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this resource",
+        )
+    return user
