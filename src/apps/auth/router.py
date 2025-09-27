@@ -15,7 +15,8 @@ from .schemas import (
     OtpVerifyUserRegisterRequest,
     UserRegisterResponse,
     UserLoginRequest,
-    UserLoginResponse
+    UserTokenResponse,
+    RefreshTokenRequest
 )
 from .services import (
     check_blacklist_for_user,
@@ -27,7 +28,9 @@ from .services import (
     register_user,
     delete_otp,
     create_jwt_token,
-    authenticate_user
+    authenticate_user,
+    get_authenticated_user,
+    decode_refresh_token
 )
 
 router = APIRouter(
@@ -137,7 +140,7 @@ async def verify_otp_code(request_data: OtpVerifyUserRegisterRequest, db: db_dep
 @router.post(
     "/login",
     status_code=status.HTTP_200_OK,
-    response_model=DataSchema[UserLoginResponse],
+    response_model=DataSchema[UserTokenResponse],
     responses={
         status.HTTP_400_BAD_REQUEST: {
             "model": DataSchema[ErrorResponse],
@@ -157,3 +160,22 @@ async def user_login(login_data: UserLoginRequest, db: db_dependency, response: 
 
     access_token = create_jwt_token(user.id, email, "access")
     return {"data": {"message": "User logged in Successfully.", "access_token": access_token}}
+
+
+@router.post(
+    "/refresh",
+    status_code=status.HTTP_200_OK,
+    response_model=DataSchema[UserTokenResponse]
+)
+async def refresh_token(db: db_dependency, refresh_data: RefreshTokenRequest, response: Response):
+    user_id = decode_refresh_token(refresh_data.refresh_token)
+    user = await get_authenticated_user(db, user_id)
+
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid refresh token.")
+
+    refresh_token = create_jwt_token(user.id, user.email, "refresh", timedelta(hours=24))
+    response.set_cookie(key="refresh_auth", value=refresh_token, httponly=True)
+
+    access_token = create_jwt_token(user.id, user.email, "access")
+    return {"data": {"message": "Token Refreshed successfully.", "access_token": access_token}}

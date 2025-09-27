@@ -39,6 +39,10 @@ class UserLoginRequest(BaseModel):
     password: PasswordValidator
 
 
-class UserLoginResponse(BaseModel):
+class UserTokenResponse(BaseModel):
     message: str
     access_token: str
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
