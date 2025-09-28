@@ -29,7 +29,7 @@ class Paginator:
     async def get_response(self) -> dict:
         return {
             'count': await self._get_total_count(),
-            'last_page': self.number_of_pages,
+            'last_page': self.number_of_pages or None,
             'next_page': self._get_next_page(),
             'previous_page': self._get_previous_page(),
             'items': [todo for todo in await self.session.scalars(self.query.limit(self.per_page).offset(self.offset))]
