@@ -22,3 +22,10 @@ class OtpBlacklist(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(length=50), unique=True, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(nullable=True)
+
+
+class RefreshTokenBlacklist(Base):
+    __tablename__ = "refresh_token_blacklist"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    refresh: Mapped[str] = mapped_column(nullable=False)
