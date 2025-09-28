@@ -5,9 +5,11 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from src.apps.tasks import send_otp_code_email
 from src.apps.users.repository import user_exists_with_email_or_username
+from src.apps.utils import get_or_create
 from src.core.configs.settings import configs
 from src.core.schemas import DataSchema, ErrorResponse
 from src.dependencies import db_dependency
+from .models import RefreshTokenBlacklist
 from .repository import get_otp_by_email
 from .schemas import (
     UserRegisterRequest,
@@ -30,7 +32,7 @@ from .services import (
     create_jwt_token,
     authenticate_user,
     get_authenticated_user,
-    decode_refresh_token
+    decode_refresh_token,
 )
 
 router = APIRouter(
@@ -180,8 +182,15 @@ async def refresh_token(db: db_dependency, refresh_data: RefreshTokenRequest, re
     if user is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid refresh token.")
 
-    refresh_token = create_jwt_token(user.id, user.email, "refresh", timedelta(hours=24))
+    user_id = user.id
+    user_email = user.email
+
+    _, is_new = await get_or_create(db, RefreshTokenBlacklist, refresh=refresh_data.refresh_token)
+    if not is_new:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Blocked refresh token.")
+
+    refresh_token = create_jwt_token(user_id, user_email, "refresh", timedelta(hours=24))
     response.set_cookie(key="refresh_auth", value=refresh_token, httponly=True)
 
-    access_token = create_jwt_token(user.id, user.email, "access")
+    access_token = create_jwt_token(user_id, user_email, "access")
     return {"data": {"message": "Token Refreshed successfully.", "access_token": access_token}}
