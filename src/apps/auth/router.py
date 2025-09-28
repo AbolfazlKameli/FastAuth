@@ -165,7 +165,13 @@ async def user_login(login_data: UserLoginRequest, db: db_dependency, response: 
 @router.post(
     "/refresh",
     status_code=status.HTTP_200_OK,
-    response_model=DataSchema[UserTokenResponse]
+    response_model=DataSchema[UserTokenResponse],
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Invalid refresh token."
+        }
+    }
 )
 async def refresh_token(db: db_dependency, refresh_data: RefreshTokenRequest, response: Response):
     user_id = decode_refresh_token(refresh_data.refresh_token)
