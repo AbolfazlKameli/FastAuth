@@ -186,6 +186,33 @@ def decode_access_token(token: Annotated[str, Depends(oauth_schema)]):
     return user_id
 
 
+def decode_refresh_token(token: str):
+    try:
+        payload = jwt.decode(token, configs.SECRET_KEY, algorithms=["HS256"])
+        user_id: int = payload.get("user_id")
+        token_type: str = payload.get("token_type")
+
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication failed, Invalid token.",
+            )
+
+        if token_type != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication failed, invalid token type."
+            )
+
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed, invalid or expired token.",
+        )
+
+    return user_id
+
+
 async def get_authenticated_user(db: db_dependency, user_id: Annotated[int, Depends(decode_access_token)]):
     user = await get_user_by_id(db, user_id)
     if user is None:
