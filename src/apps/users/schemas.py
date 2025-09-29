@@ -14,3 +14,7 @@ class UserBase(BaseModel):
 class UserOut(UserBase):
     id: int
     role: UserRoles
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
