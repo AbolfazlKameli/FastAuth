@@ -1,7 +1,9 @@
 from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
+from src.apps.auth.validators import PasswordValidator
 from .models import UserRoles
 
 
@@ -14,3 +16,20 @@ class UserBase(BaseModel):
 class UserOut(UserBase):
     id: int
     role: UserRoles
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class OTPSetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp_code: str = Field(min_length=6, max_length=6)
+    new_password: PasswordValidator
+    confirm_password: PasswordValidator
+
+    @model_validator(mode="after")
+    def check_passwords_match(self) -> Self:
+        if self.new_password != self.confirm_password:
+            raise ValueError("Passwords don't match")
+        return self
