@@ -9,7 +9,6 @@ from fastapi import Depends, status
 from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
-from passlib.context import CryptContext
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +21,6 @@ from .models import Otp, OtpBlacklist
 from .repository import get_active_blacklist_by_email
 
 hasher = PasswordHasher()
-password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class JWTBearer(HTTPBearer):
@@ -112,17 +110,13 @@ def is_otp_valid(otp_code: str, otp_obj: Otp) -> bool:
     return True
 
 
-def hash_password(password: str):
-    return password_context.hash(password)
-
-
 async def authenticate_user(db: AsyncSession, email: str, password: str) -> User | None:
     user = await get_user_by_email(db, email)
 
     if user is None:
         return None
 
-    if not password_context.verify(password, user.password):
+    if not user.verify_password(password):
         return None
 
     return user
@@ -141,8 +135,8 @@ def create_jwt_token(
 
 
 async def register_user(db: AsyncSession, email: str, username: str, password: str) -> User:
-    hashed_password = hash_password(password)
-    user = User(email=email, username=username, password=hashed_password)
+    user = User(email=email, username=username)
+    user.set_password(password)
     try:
         user = await create_user(db, user)
     except IntegrityError:

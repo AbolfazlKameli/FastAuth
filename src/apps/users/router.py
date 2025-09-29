@@ -5,7 +5,7 @@ from fastapi_cache.decorator import cache
 
 from src.apps.auth.repository import get_otp_by_email
 from src.apps.auth.services import check_blacklist_for_user, generate_otp, refresh_otp_code, handle_user_blacklist, \
-    is_otp_valid, hash_password, delete_otp
+    is_otp_valid, delete_otp
 from src.apps.dependencies import user_dependency, admin_dependency, auth_responses
 from src.apps.tasks import send_otp_code_email
 from src.core.configs.settings import configs
@@ -130,9 +130,7 @@ async def set_password(db: db_dependency, validated_data: OTPSetPasswordRequest)
 
     user = await get_user_by_email(db, email)
 
-    user.password = hash_password(validated_data.new_password.get_secret_value())
-    db.add(user)
-    await db.commit()
+    user.set_password(validated_data.new_password.get_secret_value())
 
     await delete_otp(db, otp_obj)
 
