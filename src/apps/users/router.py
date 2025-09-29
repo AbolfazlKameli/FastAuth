@@ -3,14 +3,16 @@ from typing import Annotated
 from fastapi import APIRouter, status, Query, HTTPException
 from fastapi_cache.decorator import cache
 
-from src.apps.auth.services import check_blacklist_for_user, generate_otp, refresh_otp_code, handle_user_blacklist
+from src.apps.auth.repository import get_otp_by_email
+from src.apps.auth.services import check_blacklist_for_user, generate_otp, refresh_otp_code, handle_user_blacklist, \
+    is_otp_valid, hash_password, delete_otp
 from src.apps.dependencies import user_dependency, admin_dependency, auth_responses
 from src.apps.tasks import send_otp_code_email
 from src.core.configs.settings import configs
 from src.core.schemas import PaginatedResponse, DataSchema, ErrorResponse, SuccessResponse
 from src.dependencies import db_dependency
 from .repository import get_user_by_email
-from .schemas import UserOut, ResetPasswordRequest
+from .schemas import UserOut, ResetPasswordRequest, OTPSetPasswordRequest
 from .services import get_all_users_paginated, get_user_or_404
 
 router = APIRouter(
@@ -100,3 +102,38 @@ async def request_otp_to_reset_password(db: db_dependency, reset_data: ResetPass
     send_otp_code_email.delay(email, otp_code)
 
     return {"data": {"message": "Otp code sent for reset password."}}
+
+
+@router.post(
+    "/profile/password/set",
+    status_code=status.HTTP_200_OK,
+    response_model=DataSchema[SuccessResponse],
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Invalid email address."
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Invalid OTP code."
+        }
+    }
+)
+async def set_password(db: db_dependency, validated_data: OTPSetPasswordRequest):
+    otp_code = validated_data.otp_code
+    email = str(validated_data.email)
+
+    otp_obj = await get_otp_by_email(db, email)
+
+    if not is_otp_valid(otp_code, otp_obj):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid or expired OTP code.")
+
+    user = await get_user_by_email(db, email)
+
+    user.password = hash_password(validated_data.new_password.get_secret_value())
+    db.add(user)
+    await db.commit()
+
+    await delete_otp(db, otp_obj)
+
+    return {"data": {"message": "Your password has been changed successfully."}}
