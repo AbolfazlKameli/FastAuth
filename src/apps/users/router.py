@@ -137,6 +137,8 @@ async def set_password(db: db_dependency, validated_data: OTPSetPasswordRequest)
     user = await get_user_by_email(db, email)
 
     user.set_password(validated_data.new_password.get_secret_value())
+    db.add(user)
+    await db.commit()
 
     await delete_otp(db, otp_obj)
 
