@@ -19,7 +19,7 @@ from src.core.schemas import PaginatedResponse, DataSchema, ErrorResponse, Succe
 from src.dependencies import db_dependency
 from .repository import get_user_by_email
 from .schemas import UserOut, ResetPasswordRequest, OTPSetPasswordRequest, ChangePasswordRequest
-from .services import get_all_users_paginated, get_user_or_404
+from .services import get_all_users_paginated
 
 router = APIRouter(
     prefix='/users',
@@ -56,10 +56,8 @@ async def list_users(
 )
 @cache(expire=60)
 async def get_user(
-        db: db_dependency,
         user: user_dependency
 ):
-    user = await get_user_or_404(db, user.id)
     return {"data": user}
 
 
