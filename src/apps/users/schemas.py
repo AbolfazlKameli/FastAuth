@@ -22,6 +22,18 @@ class ResetPasswordRequest(BaseModel):
     email: EmailStr
 
 
+class ChangePasswordRequest(BaseModel):
+    old_password: PasswordValidator
+    new_password: PasswordValidator
+    confirm_password: PasswordValidator
+
+    @model_validator(mode="after")
+    def check_passwords_match(self) -> Self:
+        if self.new_password != self.confirm_password:
+            raise ValueError("Passwords don't match")
+        return self
+
+
 class OTPSetPasswordRequest(BaseModel):
     email: EmailStr
     otp_code: str = Field(min_length=6, max_length=6)

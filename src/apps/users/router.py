@@ -4,15 +4,21 @@ from fastapi import APIRouter, status, Query, HTTPException
 from fastapi_cache.decorator import cache
 
 from src.apps.auth.repository import get_otp_by_email
-from src.apps.auth.services import check_blacklist_for_user, generate_otp, refresh_otp_code, handle_user_blacklist, \
-    is_otp_valid, delete_otp
+from src.apps.auth.services import (
+    check_blacklist_for_user,
+    generate_otp,
+    refresh_otp_code,
+    handle_user_blacklist,
+    is_otp_valid,
+    delete_otp
+)
 from src.apps.dependencies import user_dependency, admin_dependency, auth_responses
 from src.apps.tasks import send_otp_code_email
 from src.core.configs.settings import configs
 from src.core.schemas import PaginatedResponse, DataSchema, ErrorResponse, SuccessResponse
 from src.dependencies import db_dependency
 from .repository import get_user_by_email
-from .schemas import UserOut, ResetPasswordRequest, OTPSetPasswordRequest
+from .schemas import UserOut, ResetPasswordRequest, OTPSetPasswordRequest, ChangePasswordRequest
 from .services import get_all_users_paginated, get_user_or_404
 
 router = APIRouter(
@@ -131,7 +137,35 @@ async def set_password(db: db_dependency, validated_data: OTPSetPasswordRequest)
     user = await get_user_by_email(db, email)
 
     user.set_password(validated_data.new_password.get_secret_value())
+    db.add(user)
+    await db.commit()
 
     await delete_otp(db, otp_obj)
+
+    return {"data": {"message": "Your password has been changed successfully."}}
+
+
+@router.post(
+    "/profile/password/change",
+    status_code=status.HTTP_200_OK,
+    response_model=DataSchema[SuccessResponse],
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Incorrect password."
+        },
+        **auth_responses
+    }
+)
+async def change_user_password(db: db_dependency, change_request: ChangePasswordRequest, user: user_dependency):
+    password = change_request.old_password.get_secret_value()
+    new_password = change_request.new_password.get_secret_value()
+
+    if not user.verify_password(password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect password.")
+
+    user.set_password(new_password)
+    db.add(user)
+    await db.commit()
 
     return {"data": {"message": "Your password has been changed successfully."}}
