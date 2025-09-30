@@ -31,6 +31,14 @@ app = FastAPI(
     summary='A simple authentication application written in FastAPI',
     version='0.2.0',
     lifespan=lifespan,
+    contact={
+        "name": "Denver",
+        "url": "https://github.com/abolfazlkameli",
+        "email": "abolfazlkameli0@gmail.com"
+    },
+    license_info={
+        "name": "Beer License",
+    },
 )
 
 app.include_router(user_router)
