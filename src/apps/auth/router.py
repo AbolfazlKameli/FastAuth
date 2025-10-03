@@ -3,10 +3,8 @@ from datetime import timedelta
 from fastapi import APIRouter, status, HTTPException, Response
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from src.apps.tasks import send_otp_code_email
 from src.apps.users.repository import user_exists_with_email_or_username
 from src.apps.utils import get_or_create
-from src.core.configs.settings import configs
 from src.core.schemas import DataSchema, ErrorResponse
 from src.dependencies import db_dependency
 from .models import RefreshTokenBlacklist
@@ -23,9 +21,6 @@ from .schemas import (
 from .services import (
     check_blacklist_for_user,
     check_email_exists,
-    generate_otp,
-    handle_user_blacklist,
-    refresh_otp_code,
     is_otp_valid,
     register_user,
     delete_otp,
@@ -33,6 +28,7 @@ from .services import (
     authenticate_user,
     get_authenticated_user,
     decode_refresh_token,
+    generate_and_send_otp
 )
 
 router = APIRouter(
@@ -69,16 +65,7 @@ async def request_otp_to_register(register_data: UserRegisterRequest, db: db_dep
     if await check_email_exists(db, email):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists.")
 
-    otp_obj, otp_code, hashed_code, is_new, expires_at = await generate_otp(db, email)
-
-    if not is_new and otp_obj.attempts >= configs.OTP_SETTINGS.MAX_ATTEMPTS:
-        message = await handle_user_blacklist(db, email)
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=message)
-
-    if not is_new:
-        await refresh_otp_code(db, otp_obj, hashed_code, expires_at)
-
-    send_otp_code_email.delay(email, otp_code)
+    await generate_and_send_otp(db, email)
 
     return {
         "data": {
