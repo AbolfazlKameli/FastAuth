@@ -160,7 +160,15 @@ async def change_user_password(db: db_dependency, change_request: ChangePassword
 
 @router.put(
     "/profile/update",
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
+    response_model=DataSchema[SuccessResponse],
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Invalid email or username"
+        },
+        **auth_responses
+    }
 )
 async def update_user_profile(db: db_dependency, update_request: UserUpdateRequest, user: user_dependency):
     update_request_dict = update_request.model_dump(exclude_unset=True)
@@ -187,7 +195,14 @@ async def update_user_profile(db: db_dependency, update_request: UserUpdateReque
 
 @router.post(
     "/profile/activate",
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_200_OK,
+    response_model=DataSchema[SuccessResponse],
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Invalid or expired OTP code."
+        }
+    }
 )
 async def activate_user_account(db: db_dependency, activation_request: UserActivationRequest):
     otp_code = activation_request.otp_code
