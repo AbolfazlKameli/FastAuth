@@ -8,8 +8,8 @@ from src.apps.auth.services import check_blacklist_for_user, is_otp_valid, delet
 from src.apps.dependencies import user_dependency, admin_dependency, auth_responses
 from src.core.schemas import PaginatedResponse, DataSchema, ErrorResponse, SuccessResponse
 from src.dependencies import db_dependency
-from .repository import get_user_by_email
-from .schemas import UserOut, ResetPasswordRequest, OTPSetPasswordRequest, ChangePasswordRequest
+from .repository import get_user_by_email, user_exists_with_email_or_username
+from .schemas import UserOut, ResetPasswordRequest, OTPSetPasswordRequest, ChangePasswordRequest, UserUpdateRequest
 from .services import get_all_users_paginated
 
 router = APIRouter(
@@ -149,3 +149,30 @@ async def change_user_password(db: db_dependency, change_request: ChangePassword
     await db.commit()
 
     return {"data": {"message": "Your password has been changed successfully."}}
+
+
+@router.put(
+    "/profile/update",
+    status_code=status.HTTP_200_OK
+)
+async def update_user_profile(db: db_dependency, update_request: UserUpdateRequest, user: user_dependency):
+    update_request_dict = update_request.model_dump(exclude_unset=True)
+    email = update_request_dict.get("email")
+
+    response_message = "User profile updated successfully."
+
+    if await user_exists_with_email_or_username(db, email, update_request.username):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username or email already taken.")
+
+    for key, value in update_request_dict.items():
+        setattr(user, key, value)
+
+    if "email" in update_request_dict:
+        user.is_active = False
+        response_message += " Otp Code sent to your new email address."
+        await generate_and_send_otp(db, email)
+
+    db.add(user)
+    await db.commit()
+
+    return {"data": {"message": response_message}}
