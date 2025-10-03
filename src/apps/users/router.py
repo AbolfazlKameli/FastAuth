@@ -221,3 +221,15 @@ async def activate_user_account(db: db_dependency, activation_request: UserActiv
     await delete_otp(db, otp_obj)
 
     return {"data": {"message": "Your account has been activated successfully."}}
+
+
+@router.delete(
+    "/profile/delete",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        **auth_responses
+    }
+)
+async def delete_user_profile(db: db_dependency, user: user_dependency):
+    await db.delete(user)
+    await db.commit()
