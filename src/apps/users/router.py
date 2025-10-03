@@ -4,17 +4,8 @@ from fastapi import APIRouter, status, Query, HTTPException
 from fastapi_cache.decorator import cache
 
 from src.apps.auth.repository import get_otp_by_email
-from src.apps.auth.services import (
-    check_blacklist_for_user,
-    generate_otp,
-    refresh_otp_code,
-    handle_user_blacklist,
-    is_otp_valid,
-    delete_otp
-)
+from src.apps.auth.services import check_blacklist_for_user, is_otp_valid, delete_otp, generate_and_send_otp
 from src.apps.dependencies import user_dependency, admin_dependency, auth_responses
-from src.apps.tasks import send_otp_code_email
-from src.core.configs.settings import configs
 from src.core.schemas import PaginatedResponse, DataSchema, ErrorResponse, SuccessResponse
 from src.dependencies import db_dependency
 from .repository import get_user_by_email
@@ -94,16 +85,7 @@ async def request_otp_to_reset_password(db: db_dependency, reset_data: ResetPass
                    " not a verified primary email or is not associated with a personal user account."
         )
 
-    otp_obj, otp_code, hashed_code, is_new, expires_at = await generate_otp(db, email)
-
-    if not is_new and otp_obj.attempts >= configs.OTP_SETTINGS.MAX_ATTEMPTS:
-        message = await handle_user_blacklist(db, email)
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=message)
-
-    if not is_new:
-        await refresh_otp_code(db, otp_obj, hashed_code, expires_at)
-
-    send_otp_code_email.delay(email, otp_code)
+    await generate_and_send_otp(db, email)
 
     return {"data": {"message": "Otp code sent for reset password."}}
 

@@ -12,6 +12,7 @@ from jose import jwt, JWTError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.apps.tasks import send_otp_code_email
 from src.apps.users.models import User, UserRoles
 from src.apps.users.repository import get_user_by_email, create_user, get_user_by_id
 from src.apps.utils import get_or_create
@@ -94,6 +95,19 @@ async def refresh_otp_code(db: AsyncSession, otp: Otp, hashed_otp: str, expires_
     otp.attempts += 1
     db.add(otp)
     await db.commit()
+
+
+async def generate_and_send_otp(db: AsyncSession, email: str):
+    otp_obj, otp_code, hashed_code, is_new, expires_at = await generate_otp(db, email)
+
+    if not is_new and otp_obj.attempts >= configs.OTP_SETTINGS.MAX_ATTEMPTS:
+        message = await handle_user_blacklist(db, email)
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=message)
+
+    if not is_new:
+        await refresh_otp_code(db, otp_obj, hashed_code, expires_at)
+
+    send_otp_code_email.delay(email, otp_code)
 
 
 def is_otp_valid(otp_code: str, otp_obj: Otp) -> bool:
