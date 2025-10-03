@@ -1,11 +1,12 @@
 from datetime import timedelta
 
-from fastapi import APIRouter, status, HTTPException, Response
+from fastapi import APIRouter, status, HTTPException, Response, Request
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from src.apps.dependencies import auth_responses
 from src.apps.users.repository import user_exists_with_email_or_username
 from src.apps.utils import get_or_create
+from src.core.limiter import limiter
 from src.core.schemas import DataSchema, ErrorResponse
 from src.dependencies import db_dependency
 from .models import RefreshTokenBlacklist
@@ -57,7 +58,13 @@ router = APIRouter(
         }
     }
 )
-async def request_otp_to_register(register_data: UserRegisterRequest, db: db_dependency):
+@limiter.limit("5/minute")
+async def request_otp_to_register(
+        register_data: UserRegisterRequest,
+        db: db_dependency,
+        request: Request,
+        response: Response
+):
     email = str(register_data.email)
 
     if (message := await check_blacklist_for_user(db, email)) is not None:
@@ -98,7 +105,13 @@ async def request_otp_to_register(register_data: UserRegisterRequest, db: db_dep
         }
     }
 )
-async def verify_otp_code(request_data: OtpVerifyUserRegisterRequest, db: db_dependency):
+@limiter.limit("5/minute")
+async def verify_otp_code(
+        request_data: OtpVerifyUserRegisterRequest,
+        db: db_dependency,
+        request: Request,
+        response: Response
+):
     otp_code = request_data.otp_code
     email = str(request_data.email)
     otp_obj = await get_otp_by_email(db, email)
@@ -141,7 +154,13 @@ async def verify_otp_code(request_data: OtpVerifyUserRegisterRequest, db: db_dep
         }
     }
 )
-async def user_login(login_data: UserLoginRequest, db: db_dependency, response: Response):
+@limiter.limit("5/minute")
+async def user_login(
+        login_data: UserLoginRequest,
+        db: db_dependency,
+        response: Response,
+        request: Request,
+):
     email = str(login_data.email)
     user = await authenticate_user(db, email, login_data.password.get_secret_value())
 
@@ -170,7 +189,8 @@ async def user_login(login_data: UserLoginRequest, db: db_dependency, response: 
         **auth_responses
     }
 )
-async def refresh_token(db: db_dependency, refresh_data: RefreshTokenRequest, response: Response):
+@limiter.limit("5/minute")
+async def refresh_token(db: db_dependency, refresh_data: RefreshTokenRequest, response: Response, request: Request):
     user_id = decode_refresh_token(refresh_data.refresh_token)
     user = await get_authenticated_user(db, user_id)
 
