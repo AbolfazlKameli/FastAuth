@@ -9,7 +9,14 @@ from src.apps.dependencies import user_dependency, admin_dependency, auth_respon
 from src.core.schemas import PaginatedResponse, DataSchema, ErrorResponse, SuccessResponse
 from src.dependencies import db_dependency
 from .repository import get_user_by_email, user_exists_with_email_or_username
-from .schemas import UserOut, ResetPasswordRequest, OTPSetPasswordRequest, ChangePasswordRequest, UserUpdateRequest
+from .schemas import (
+    UserOut,
+    ResetPasswordRequest,
+    OTPSetPasswordRequest,
+    ChangePasswordRequest,
+    UserUpdateRequest,
+    UserActivationRequest
+)
 from .services import get_all_users_paginated
 
 router = APIRouter(
@@ -176,3 +183,26 @@ async def update_user_profile(db: db_dependency, update_request: UserUpdateReque
     await db.commit()
 
     return {"data": {"message": response_message}}
+
+
+@router.post(
+    "/profile/activate",
+    status_code=status.HTTP_200_OK
+)
+async def activate_user_account(db: db_dependency, activation_request: UserActivationRequest):
+    otp_code = activation_request.otp_code
+    email = str(activation_request.email)
+
+    otp_obj = await get_otp_by_email(db, email)
+
+    if not is_otp_valid(otp_code, otp_obj):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid or expired OTP code.")
+
+    user = await get_user_by_email(db, email)
+    user.is_active = True
+    db.add(user)
+    await db.commit()
+
+    await delete_otp(db, otp_obj)
+
+    return {"data": {"message": "Your account has been activated successfully."}}
