@@ -3,6 +3,7 @@ from datetime import timedelta
 from fastapi import APIRouter, status, HTTPException, Response
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from src.apps.dependencies import auth_responses
 from src.apps.users.repository import user_exists_with_email_or_username
 from src.apps.utils import get_or_create
 from src.core.schemas import DataSchema, ErrorResponse
@@ -63,7 +64,10 @@ async def request_otp_to_register(register_data: UserRegisterRequest, db: db_dep
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=message)
 
     if await check_email_exists(db, email):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already exists. if you believe your account is deactivated, call support."
+        )
 
     await generate_and_send_otp(db, email)
 
@@ -142,7 +146,10 @@ async def user_login(login_data: UserLoginRequest, db: db_dependency, response: 
     user = await authenticate_user(db, email, login_data.password.get_secret_value())
 
     if user is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email or password incorrect.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email or password incorrect. if you believe your account is deactivated, call support."
+        )
 
     refresh_token = create_jwt_token(user.id, email, "refresh", timedelta(hours=24))
     response.set_cookie(key="refresh_auth", value=refresh_token, httponly=True)
@@ -159,7 +166,8 @@ async def user_login(login_data: UserLoginRequest, db: db_dependency, response: 
         status.HTTP_400_BAD_REQUEST: {
             "model": DataSchema[ErrorResponse],
             "description": "Invalid refresh token."
-        }
+        },
+        **auth_responses
     }
 )
 async def refresh_token(db: db_dependency, refresh_data: RefreshTokenRequest, response: Response):
@@ -168,6 +176,12 @@ async def refresh_token(db: db_dependency, refresh_data: RefreshTokenRequest, re
 
     if user is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid refresh token.")
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token."
+        )
 
     user_id = user.id
     user_email = user.email
