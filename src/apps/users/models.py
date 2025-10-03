@@ -26,6 +26,7 @@ class User(Base):
         default=UserRoles.user.value,
         nullable=False
     )
+    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
     created_at: Mapped[datetime] = mapped_column(sa.DateTime, default=datetime.now)
 

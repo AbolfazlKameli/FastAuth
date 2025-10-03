@@ -130,6 +130,9 @@ async def authenticate_user(db: AsyncSession, email: str, password: str) -> User
     if user is None:
         return None
 
+    if not user.is_active:
+        return None
+
     if not user.verify_password(password):
         return None
 
@@ -236,5 +239,14 @@ async def get_admin_user(user: Annotated[User, Depends(get_authenticated_user)])
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to this resource",
+        )
+    return user
+
+
+async def get_active_user(user: Annotated[User, Depends(get_authenticated_user)]):
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Inactive account.",
         )
     return user

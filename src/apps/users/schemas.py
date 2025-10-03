@@ -45,3 +45,13 @@ class OTPSetPasswordRequest(BaseModel):
         if self.new_password != self.confirm_password:
             raise ValueError("Passwords don't match")
         return self
+
+
+class UserUpdateRequest(BaseModel):
+    username: str | None = Field(None, min_length=4)
+    email: EmailStr | None = None
+
+
+class UserActivationRequest(BaseModel):
+    otp_code: str = Field(min_length=6, max_length=6)
+    email: EmailStr
