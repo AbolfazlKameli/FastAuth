@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title='FastAuth',
     summary='A simple authentication application written in FastAPI',
-    version='0.2.0',
+    version='0.3.0',
     lifespan=lifespan,
     contact={
         "name": "Denver",
