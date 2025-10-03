@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, status, Query, HTTPException
+from fastapi import APIRouter, status, Query, HTTPException, Request, Response
 from fastapi_cache.decorator import cache
 
 from src.apps.auth.repository import get_otp_by_email
 from src.apps.auth.services import check_blacklist_for_user, is_otp_valid, delete_otp, generate_and_send_otp
 from src.apps.dependencies import user_dependency, admin_dependency, auth_responses
+from src.core.limiter import user_limiter, admin_limiter, limiter
 from src.core.schemas import PaginatedResponse, DataSchema, ErrorResponse, SuccessResponse
 from src.dependencies import db_dependency
 from .repository import get_user_by_email, user_exists_with_email_or_username
@@ -32,9 +33,12 @@ router = APIRouter(
     responses=auth_responses
 )
 @cache(expire=60)
+@admin_limiter()
 async def list_users(
         db: db_dependency,
         _: admin_dependency,
+        request: Request,
+        response: Response,
         page: Annotated[int, Query(ge=1)] = 1,
         per_page: Annotated[int, Query(ge=1, le=100)] = 10,
 ):
@@ -53,8 +57,11 @@ async def list_users(
     }
 )
 @cache(expire=60)
+@user_limiter()
 async def get_user(
-        user: user_dependency
+        user: user_dependency,
+        request: Request,
+        response: Response
 ):
     return {"data": user}
 
@@ -78,7 +85,13 @@ async def get_user(
         },
     }
 )
-async def request_otp_to_reset_password(db: db_dependency, reset_data: ResetPasswordRequest):
+@limiter.limit("5/minute")
+async def request_otp_to_reset_password(
+        db: db_dependency,
+        reset_data: ResetPasswordRequest,
+        request: Request,
+        response: Response
+):
     email = str(reset_data.email)
 
     if (message := await check_blacklist_for_user(db, email)) is not None:
@@ -112,7 +125,13 @@ async def request_otp_to_reset_password(db: db_dependency, reset_data: ResetPass
         }
     }
 )
-async def set_password(db: db_dependency, validated_data: OTPSetPasswordRequest):
+@limiter.limit("5/minute")
+async def set_password(
+        db: db_dependency,
+        validated_data: OTPSetPasswordRequest,
+        request: Request,
+        response: Response
+):
     otp_code = validated_data.otp_code
     email = str(validated_data.email)
 
@@ -144,7 +163,14 @@ async def set_password(db: db_dependency, validated_data: OTPSetPasswordRequest)
         **auth_responses
     }
 )
-async def change_user_password(db: db_dependency, change_request: ChangePasswordRequest, user: user_dependency):
+@limiter.limit("10/5minute")
+async def change_user_password(
+        db: db_dependency,
+        change_request: ChangePasswordRequest,
+        user: user_dependency,
+        request: Request,
+        response: Response
+):
     password = change_request.old_password.get_secret_value()
     new_password = change_request.new_password.get_secret_value()
 
@@ -170,7 +196,14 @@ async def change_user_password(db: db_dependency, change_request: ChangePassword
         **auth_responses
     }
 )
-async def update_user_profile(db: db_dependency, update_request: UserUpdateRequest, user: user_dependency):
+@limiter.limit("10/5minute")
+async def update_user_profile(
+        db: db_dependency,
+        update_request: UserUpdateRequest,
+        user: user_dependency,
+        request: Request,
+        response: Response
+):
     update_request_dict = update_request.model_dump(exclude_unset=True)
     email = update_request_dict.get("email")
 
@@ -204,7 +237,13 @@ async def update_user_profile(db: db_dependency, update_request: UserUpdateReque
         }
     }
 )
-async def activate_user_account(db: db_dependency, activation_request: UserActivationRequest):
+@limiter.limit("10/5minute")
+async def activate_user_account(
+        db: db_dependency,
+        activation_request: UserActivationRequest,
+        request: Request,
+        response: Response
+):
     otp_code = activation_request.otp_code
     email = str(activation_request.email)
 
@@ -230,6 +269,12 @@ async def activate_user_account(db: db_dependency, activation_request: UserActiv
         **auth_responses
     }
 )
-async def delete_user_profile(db: db_dependency, user: user_dependency):
+@limiter.limit("10/5minute")
+async def delete_user_profile(
+        db: db_dependency,
+        user: user_dependency,
+        request: Request,
+        response: Response
+):
     await db.delete(user)
     await db.commit()

@@ -91,7 +91,7 @@ Once running, open your browser at:
 ## 🚀 Roadmap
 
 * [ ] Docker support
-* [ ] Rate limiting & IP-based throttling
+* [X] Rate limiting & IP-based throttling
 * [ ] Social login (Google, GitHub, etc.)
 * [ ] Automatic tests
 
