@@ -1,4 +1,5 @@
 from logging.config import dictConfig
+from pathlib import Path
 
 LOGGING_CONFIG = {
     'version': 1,
@@ -46,4 +47,6 @@ LOGGING_CONFIG = {
 
 
 def setup_logging():
+    log_directory_path = Path("logs/app")
+    log_directory_path.mkdir(parents=True, exist_ok=True)
     dictConfig(LOGGING_CONFIG)
