@@ -1,0 +1,73 @@
+services:
+  db:
+    container_name: fastauth_database
+    image: docker.arvancloud.ir/postgres:17
+    restart: always
+    env_file:
+      - envs/.prod.env
+    networks:
+      - fastauth_network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U fastauth" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    container_name: fastauth_redis
+    image: docker.arvancloud.ir/redis:7.4.1-alpine
+    restart: always
+    volumes:
+      - redis_data:/data
+    networks:
+      - fastauth_network
+
+  fastauth:
+    container_name: fastauth
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fastauth:0.3.0
+    volumes:
+      - fastauth_data:/usr/src/fastauth
+    env_file:
+      - envs/.env
+      - envs/.prod.env
+    networks:
+      - fastauth_network
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  celery:
+    container_name: fastauth_celery
+    image: fastauth:0.3.0
+    entrypoint: celery -A src.infrastructure worker -l INFO
+    volumes:
+      - fastauth_data:/usr/src/fastauth
+    env_file:
+      - envs/.env
+      - envs/.prod.env
+    restart: always
+    networks:
+      - fastauth_network
+    depends_on:
+      redis:
+        condition: service_started
+      fastauth:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  redis_data:
+  fastauth_data:
+
+networks:
+  fastauth_network:
+    driver: bridge
