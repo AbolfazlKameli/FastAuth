@@ -67,6 +67,11 @@ alembic upgrade head
 
 ## ▶️ Running the App
 
+using docker:
+```bash
+docker compose up
+```
+
 Start the FastAPI server:
 
 ```bash
@@ -90,7 +95,7 @@ Once running, open your browser at:
 
 ## 🚀 Roadmap
 
-* [ ] Docker support
+* [x] Docker support
 * [X] Rate limiting & IP-based throttling
 * [ ] Social login (Google, GitHub, etc.)
 * [ ] Automatic tests
