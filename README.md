@@ -5,9 +5,9 @@ A lightweight authentication system built with <b>FastAPI</b>, featuring JWT, ve
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.11-blue" />
-  <img src="https://img.shields.io/badge/FastAPI-0.110+-green?link=https://google.com" />
-  <img src="https://img.shields.io/badge/PostgreSQL-15+-blue" />
+  <img src="https://img.shields.io/badge/Python-3.13-blue" />
+  <img src="https://img.shields.io/badge/FastAPI-0.117.1-green?link=https://google.com" />
+  <img src="https://img.shields.io/badge/PostgreSQL-17+-blue" />
   <img src="https://img.shields.io/badge/License-MIT-yellow" />
 </p>
 
