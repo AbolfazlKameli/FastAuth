@@ -34,7 +34,7 @@ class GlobalConfig(BaseConfig):
     EMAIL_HOST_PASSWORD: str
     TIMEZONE: str
     OTP_SETTINGS: OTPSettings = OTPSettings()
-
+    UNUSABLE_PASSWORD_MARKER: str = "!UNUSABLE"
 
 class DevConfig(GlobalConfig):
     DEBUG: bool = True

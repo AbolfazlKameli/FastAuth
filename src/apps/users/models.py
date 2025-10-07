@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from argon2 import PasswordHasher
 from sqlalchemy.orm import mapped_column, Mapped
 
+from src.core.configs.settings import configs
 from src.infrastructure.database import Base
 
 pwd_hasher = PasswordHasher()
@@ -34,7 +35,12 @@ class User(Base):
         return pwd_hasher.hash(plain_password)
 
     def verify_password(self, plain_password: str) -> bool:
+        if self.password.startswith(configs.UNUSABLE_PASSWORD_MARKER):
+            return False
         return pwd_hasher.verify(self.password, plain_password)
 
     def set_password(self, plain_password: str) -> None:
         self.password = self.hash_password(plain_password)
+
+    def set_unusable_password(self):
+        self.password = configs.UNUSABLE_PASSWORD_MARKER

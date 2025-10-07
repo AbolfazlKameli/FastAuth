@@ -151,9 +151,14 @@ def create_jwt_token(
     return jwt.encode(payload, configs.SECRET_KEY, algorithm="HS256")
 
 
-async def register_user(db: AsyncSession, email: str, username: str, password: str) -> User:
+async def register_user(db: AsyncSession, email: str, username: str, password: str | None = None) -> User:
     user = User(email=email, username=username)
-    user.set_password(password)
+
+    if password is None:
+        user.set_unusable_password()
+    elif password is not None:
+        user.set_password(password)
+
     try:
         user = await create_user(db, user)
     except IntegrityError:
