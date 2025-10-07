@@ -1,12 +1,11 @@
 import random
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 from fastapi import APIRouter, status, HTTPException, Response, Request
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from src.apps.dependencies import auth_responses
 from src.apps.users.repository import user_exists_with_email_or_username, get_user_by_email
-from src.apps.users.schemas import UserBase
 from src.apps.utils import get_or_create
 from src.core.limiter import limiter
 from src.core.schemas import DataSchema, ErrorResponse
@@ -238,14 +237,13 @@ async def auth_by_google(db: db_dependency, request: Request, response: Response
     token = await oauth.google.authorize_access_token(request)
     userinfo = dict(token['userinfo'])
 
-    user_model = UserBase(username=userinfo.get("given_name"), email=userinfo.get("email"), created_at=datetime.now())
-    email = str(user_model.email)
+    email = userinfo.get("email")
 
     user = await get_user_by_email(db, email)
 
     if user is None:
-        username = user_model.username
-        if await user_exists_with_email_or_username(db, email, user_model.username):
+        username = userinfo.get("given_name")
+        if await user_exists_with_email_or_username(db, email, username):
             username += random.randint(1000, 9999)
 
         user = await register_user(
