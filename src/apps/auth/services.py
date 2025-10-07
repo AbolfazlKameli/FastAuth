@@ -93,7 +93,7 @@ async def check_email_exists(db: AsyncSession, email: str) -> bool:
 
 
 async def generate_otp(db: AsyncSession, email: str) -> (Otp, str, str, bool, datetime):
-    expires_at = datetime.now() + configs.OTP_SETTINGS.OTP_EXPIRATION_TIME
+    expires_at = datetime.now(tz=pytz.timezone(configs.TIMEZONE)) + configs.OTP_EXPIRATION_TIME
 
     otp_code = str(randint(100_000, 999_999))
     hashed_code = hasher.hash(otp_code)
@@ -119,7 +119,7 @@ async def refresh_otp_code(db: AsyncSession, otp: Otp, hashed_otp: str, expires_
 async def generate_and_send_otp(db: AsyncSession, email: str):
     otp_obj, otp_code, hashed_code, is_new, expires_at = await generate_otp(db, email)
 
-    if not is_new and otp_obj.attempts >= configs.OTP_SETTINGS.MAX_ATTEMPTS:
+    if not is_new and otp_obj.attempts >= configs.OTP_MAX_ATTEMPTS:
         message = await handle_user_blacklist(db, email)
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=message)
 
