@@ -67,7 +67,7 @@ oauth.register(
 
 
 async def check_blacklist_for_user(db: AsyncSession, email: str) -> str | None:
-    now = datetime.now()
+    now = datetime.now(tz=pytz.timezone(configs.TIMEZONE))
 
     blacklist = await get_active_blacklist_by_email(db, email, now)
     response: str | None = None
@@ -130,7 +130,7 @@ async def generate_and_send_otp(db: AsyncSession, email: str):
 
 
 def is_otp_valid(otp_code: str, otp_obj: Otp) -> bool:
-    now = datetime.now()
+    now = datetime.now(tz=pytz.timezone(configs.TIMEZONE))
 
     if otp_obj is None or otp_obj.expires_at < now:
         return False
@@ -165,7 +165,7 @@ def create_jwt_token(
         expires_at: timedelta = timedelta(minutes=15)
 ) -> str:
     payload = {"user_id": user_id, "email": email, "token_type": token_type}
-    exp = datetime.now(tz=pytz.timezone("Asia/Tehran")) + expires_at
+    exp = datetime.now(tz=pytz.timezone(configs.TIMEZONE)) + expires_at
     payload.update({"exp": exp})
     return jwt.encode(payload, configs.SECRET_KEY, algorithm="HS256")
 

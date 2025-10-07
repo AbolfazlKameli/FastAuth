@@ -29,7 +29,7 @@ class User(Base):
     )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
-    created_at: Mapped[datetime] = mapped_column(sa.DateTime, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), default=datetime.now)
 
     def hash_password(self, plain_password: str) -> str:
         return pwd_hasher.hash(plain_password)
