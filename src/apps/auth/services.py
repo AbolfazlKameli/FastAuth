@@ -5,6 +5,7 @@ from typing import Literal, Annotated
 import pytz
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
+from authlib.integrations.starlette_client import OAuth
 from fastapi import Depends, status
 from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -45,6 +46,24 @@ class JWTBearer(HTTPBearer):
 
 
 oauth_schema = JWTBearer()
+
+oauth = OAuth()
+
+oauth.register(
+    name='google',
+    client_id=configs.CLIENT_ID,
+    client_secret=configs.CLIENT_SECRET,
+    access_token_url=configs.TOKEN_URI,
+    access_token_params=None,
+    authorize_url=configs.AUTH_URI,
+    authorize_params=None,
+    client_kwargs={'scope': [
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "openid",
+    ]},
+    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration"
+)
 
 
 async def check_blacklist_for_user(db: AsyncSession, email: str) -> str | None:

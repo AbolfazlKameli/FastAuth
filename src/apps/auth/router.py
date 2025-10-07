@@ -1,10 +1,12 @@
-from datetime import timedelta
+import random
+from datetime import timedelta, datetime
 
 from fastapi import APIRouter, status, HTTPException, Response, Request
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from src.apps.dependencies import auth_responses
-from src.apps.users.repository import user_exists_with_email_or_username
+from src.apps.users.repository import user_exists_with_email_or_username, get_user_by_email
+from src.apps.users.schemas import UserBase
 from src.apps.utils import get_or_create
 from src.core.limiter import limiter
 from src.core.schemas import DataSchema, ErrorResponse
@@ -30,7 +32,8 @@ from .services import (
     authenticate_user,
     get_authenticated_user,
     decode_refresh_token,
-    generate_and_send_otp
+    generate_and_send_otp,
+    oauth
 )
 
 router = APIRouter(
@@ -215,3 +218,44 @@ async def refresh_token(db: db_dependency, refresh_data: RefreshTokenRequest, re
 
     access_token = create_jwt_token(user_id, user_email, "access")
     return {"data": {"message": "Token Refreshed successfully.", "access_token": access_token}}
+
+
+@router.get(
+    "/login/google",
+    status_code=status.HTTP_200_OK,
+)
+@limiter.limit("5/minute")
+async def login_by_google(request: Request, response: Response):
+    redirect_url = request.url_for("auth_by_google")
+    return await oauth.google.authorize_redirect(request, redirect_url)
+
+
+@router.get(
+    "/login/google/auth"
+)
+@limiter.limit("5/minute")
+async def auth_by_google(db: db_dependency, request: Request, response: Response):
+    token = await oauth.google.authorize_access_token(request)
+    userinfo = dict(token['userinfo'])
+
+    user_model = UserBase(username=userinfo.get("given_name"), email=userinfo.get("email"), created_at=datetime.now())
+    email = str(user_model.email)
+
+    user = await get_user_by_email(db, email)
+
+    if user is None:
+        username = user_model.username
+        if await user_exists_with_email_or_username(db, email, user_model.username):
+            username += random.randint(1000, 9999)
+
+        user = await register_user(
+            db,
+            email=email,
+            username=username
+        )
+
+    refresh_token = create_jwt_token(user.id, email, "refresh", timedelta(hours=24))
+    response.set_cookie(key="refresh_auth", value=refresh_token, httponly=True)
+
+    access_token = create_jwt_token(user.id, email, "access")
+    return {"data": {"message": "User logged in Successfully.", "access_token": access_token}}

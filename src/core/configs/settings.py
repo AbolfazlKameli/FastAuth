@@ -35,6 +35,11 @@ class GlobalConfig(BaseConfig):
     TIMEZONE: str
     OTP_SETTINGS: OTPSettings = OTPSettings()
     UNUSABLE_PASSWORD_MARKER: str = "!UNUSABLE"
+    CLIENT_ID: str
+    CLIENT_SECRET: str
+    AUTH_URI: str
+    TOKEN_URI: str
+
 
 class DevConfig(GlobalConfig):
     DEBUG: bool = True
