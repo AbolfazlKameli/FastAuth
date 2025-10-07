@@ -19,6 +19,9 @@ python-jose = "*"
 pytz = "*"
 fastapi-cache2 = {extras = ["redis"], version = "*"}
 slowapi = "*"
+authlib = "*"
+itsdangerous = "*"
+httpx = "*"
 
 [dev-packages]
 
