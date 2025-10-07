@@ -12,11 +12,6 @@ class BaseConfig(BaseSettings):
     )
 
 
-class OTPSettings(BaseSettings):
-    OTP_EXPIRATION_TIME: timedelta = timedelta(minutes=2)
-    MAX_ATTEMPTS: int = 5
-
-
 class GlobalConfig(BaseConfig):
     SECRET_KEY: str
     DATABASE_POOL_SIZE: int
@@ -33,7 +28,8 @@ class GlobalConfig(BaseConfig):
     EMAIL_HOST_USERNAME: str
     EMAIL_HOST_PASSWORD: str
     TIMEZONE: str
-    OTP_SETTINGS: OTPSettings = OTPSettings()
+    OTP_EXPIRATION_TIME: timedelta = timedelta(minutes=2)
+    OTP_MAX_ATTEMPTS: int = 5
     UNUSABLE_PASSWORD_MARKER: str = "!UNUSABLE"
     CLIENT_ID: str
     CLIENT_SECRET: str
