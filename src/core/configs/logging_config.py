@@ -27,10 +27,6 @@ LOGGING_CONFIG = {
             'backupCount': 5,
         }
     },
-    'root': {
-        'level': 'INFO',
-        'handlers': ['console_handler', 'file_handler']
-    },
     'loggers': {
         'app': {
             'level': 'DEBUG',
