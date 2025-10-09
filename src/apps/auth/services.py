@@ -74,7 +74,7 @@ async def check_blacklist_for_user(db: AsyncSession, email: str) -> str | None:
 
     if blacklist and blacklist.expires_at is not None:
         expiration_date_time = blacklist.expires_at.strftime("%Y-%m-%d %H:%M:%S")
-        response = f"You have benn blocked until {expiration_date_time}"
+        response = f"You have been blocked until {expiration_date_time}"
 
     if blacklist and blacklist.expires_at is None:
         response = "You have been permanently blocked. if you believe this is a mistake, please contact support."
