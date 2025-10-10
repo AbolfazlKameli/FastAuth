@@ -56,7 +56,7 @@ async def generate_test_user(overrides_get_db):
         await overrides_get_db.commit()
 
     user = User(username="testuser", email="testuser@gmail.com")
-    user.set_password("testuserpassword")
+    user.set_password("new@userPassword1")
     overrides_get_db.add(user)
     await overrides_get_db.commit()
     await overrides_get_db.refresh(user)
