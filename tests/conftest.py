@@ -1,15 +1,14 @@
-from typing import AsyncGenerator
 from datetime import datetime, timedelta
+from typing import AsyncGenerator
 
 import pytest_asyncio
-import pytz
+from argon2 import PasswordHasher
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from argon2 import PasswordHasher
 
-from src.apps.auth.services import create_jwt_token
 from src.apps.auth.models import Otp
+from src.apps.auth.services import create_jwt_token
 from src.apps.users.models import User
 from src.core.configs.settings import configs
 from src.dependencies import get_db
@@ -87,8 +86,10 @@ async def generate_test_otp(overrides_get_db):
 
     yield otp
 
-    await overrides_get_db.delete(otp)
-    await overrides_get_db.commit()
+    if existing is not None:
+        await overrides_get_db.delete(otp)
+        await overrides_get_db.commit()
+
 
 
 @pytest_asyncio.fixture(scope="function")
