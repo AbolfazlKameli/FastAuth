@@ -1,16 +1,21 @@
+from datetime import datetime, timedelta
 from typing import AsyncGenerator
 
 import pytest_asyncio
+from argon2 import PasswordHasher
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
+from src.apps.auth.models import Otp
 from src.apps.auth.services import create_jwt_token
 from src.apps.users.models import User
 from src.core.configs.settings import configs
 from src.dependencies import get_db
 from src.infrastructure.database import Base
 from src.main import app
+
+hasher = PasswordHasher()
 
 engine = create_async_engine(url=configs.DATABASE_URL)
 
@@ -51,7 +56,7 @@ async def generate_test_user(overrides_get_db):
         await overrides_get_db.commit()
 
     user = User(username="testuser", email="testuser@gmail.com")
-    user.set_password("testuserpassword")
+    user.set_password("new@userPassword1")
     overrides_get_db.add(user)
     await overrides_get_db.commit()
     await overrides_get_db.refresh(user)
@@ -60,6 +65,51 @@ async def generate_test_user(overrides_get_db):
 
     await overrides_get_db.delete(user)
     await overrides_get_db.commit()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def generate_inactive_user(overrides_get_db):
+    existing = await overrides_get_db.scalar(
+        select(User).where(User.email == "inactiveuser@gmail.com")
+    )
+    if existing is not None:
+        await overrides_get_db.delete(existing)
+        await overrides_get_db.commit()
+
+    user = User(username="inactiveuser", email="inactiveuser@gmail.com", is_active=False)
+    user.set_password("inactive@userpassword1")
+    overrides_get_db.add(user)
+    await overrides_get_db.commit()
+    await overrides_get_db.refresh(user)
+
+    yield user
+
+    await overrides_get_db.delete(user)
+    await overrides_get_db.commit()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def generate_test_otp(overrides_get_db):
+    hashed_otp = hasher.hash("123456")
+    now = datetime.now()
+
+    existing = await overrides_get_db.scalar(
+        select(Otp).where(Otp.email == "testuser@gmail.com")
+    )
+    if existing is not None:
+        await overrides_get_db.delete(existing)
+        await overrides_get_db.commit()
+
+    otp = Otp(email="testuser@gmail.com", hashed_code=hashed_otp, expires_at=now + timedelta(minutes=2))
+    overrides_get_db.add(otp)
+    await overrides_get_db.commit()
+    await overrides_get_db.refresh(otp)
+
+    yield otp
+
+    if existing is not None:
+        await overrides_get_db.delete(otp)
+        await overrides_get_db.commit()
 
 
 @pytest_asyncio.fixture(scope="function")
