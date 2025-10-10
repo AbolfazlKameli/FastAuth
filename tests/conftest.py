@@ -68,6 +68,27 @@ async def generate_test_user(overrides_get_db):
 
 
 @pytest_asyncio.fixture(scope="function")
+async def generate_inactive_user(overrides_get_db):
+    existing = await overrides_get_db.scalar(
+        select(User).where(User.email == "inactiveuser@gmail.com")
+    )
+    if existing is not None:
+        await overrides_get_db.delete(existing)
+        await overrides_get_db.commit()
+
+    user = User(username="inactiveuser", email="inactiveuser@gmail.com", is_active=False)
+    user.set_password("inactive@userpassword1")
+    overrides_get_db.add(user)
+    await overrides_get_db.commit()
+    await overrides_get_db.refresh(user)
+
+    yield user
+
+    await overrides_get_db.delete(user)
+    await overrides_get_db.commit()
+
+
+@pytest_asyncio.fixture(scope="function")
 async def generate_test_otp(overrides_get_db):
     hashed_otp = hasher.hash("123456")
     now = datetime.now()
@@ -89,7 +110,6 @@ async def generate_test_otp(overrides_get_db):
     if existing is not None:
         await overrides_get_db.delete(otp)
         await overrides_get_db.commit()
-
 
 
 @pytest_asyncio.fixture(scope="function")
