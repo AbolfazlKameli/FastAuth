@@ -153,3 +153,31 @@ async def test_verify_otp_code_user_already_exists(anon_client, generate_test_ot
     mock_otp_validator.assert_called_once_with("123456", generate_test_otp)
 
     assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_user_login_success(anon_client):
+    request_data = {
+        "email": "testuser@gmail.com",
+        "password": "new@userPassword1"
+    }
+
+    response = await anon_client.post("/auth/login", json=request_data)
+
+    assert response.status_code == 200
+    assert "access_token" in response.json()["data"]
+    assert "refresh_auth" in response.cookies
+
+
+@pytest.mark.asyncio
+async def test_user_login_incorrect_email_or_password(anon_client):
+    request_data = {
+        "email": "incorrect@gmail.com",
+        "password": "Incorrect@1"
+    }
+
+    response = await anon_client.post("/auth/login", json=request_data)
+
+    assert response.status_code == 400
+    assert "access_token" not in response.json()["data"]
+    assert "refresh_auth" not in response.cookies
