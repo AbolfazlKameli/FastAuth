@@ -6,10 +6,6 @@ from fastapi import HTTPException
 
 @pytest.mark.asyncio
 async def test_request_otp_to_register_success(anon_client, mocker):
-    mocker.patch("src.apps.auth.router.check_blacklist_for_user", return_value=None)
-
-    mocker.patch("src.apps.auth.router.check_email_exists", return_value=False)
-
     mock_generate_otp = mocker.patch("src.apps.auth.services.generate_otp")
     mock_generate_otp.return_value = (mocker.ANY, "123456", "hashed_code", True, datetime.now() + timedelta(minutes=2))
 
@@ -27,8 +23,6 @@ async def test_request_otp_to_register_success(anon_client, mocker):
 @pytest.mark.asyncio
 async def test_request_otp_to_register_too_many_requests(anon_client, mocker):
     mocker.patch("src.apps.auth.router.check_blacklist_for_user", return_value=None)
-
-    mocker.patch("src.apps.auth.router.check_email_exists", return_value=False)
 
     mock_generate_and_send_otp = mocker.patch("src.apps.auth.router.generate_and_send_otp")
     mock_generate_and_send_otp.side_effect = HTTPException(
@@ -70,8 +64,6 @@ async def test_request_otp_to_register_permanently_blacklisted(anon_client, mock
 
 @pytest.mark.asyncio
 async def test_request_otp_to_register_email_already_exists(anon_client, mocker):
-    mocker.patch("src.apps.auth.router.check_blacklist_for_user", return_value=None)
-
     mock_email_checker = mocker.patch("src.apps.auth.router.check_email_exists", return_value=True)
 
     response = await anon_client.post("/auth/register", json={"email": "newuser@gmail.com"})
