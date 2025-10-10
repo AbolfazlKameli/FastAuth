@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import pytest
 from fastapi import HTTPException
 
+from src.apps.auth.services import create_jwt_token
+
 
 @pytest.mark.asyncio
 async def test_request_otp_to_register_success(anon_client, mocker):
@@ -181,3 +183,97 @@ async def test_user_login_incorrect_email_or_password(anon_client):
     assert response.status_code == 400
     assert "access_token" not in response.json()["data"]
     assert "refresh_auth" not in response.cookies
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_success(anon_client, generate_test_user):
+    refresh_token = create_jwt_token(
+        generate_test_user.id,
+        generate_test_user.email,
+        "refresh",
+        expires_at=timedelta(hours=24)
+    )
+
+    response = await anon_client.post("/auth/refresh", json={"refresh_token": refresh_token})
+
+    assert response.status_code == 200
+    assert "access_token" in response.json()["data"]
+    assert "refresh_auth" in response.cookies
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_invalid_user(anon_client):
+    refresh_token = create_jwt_token(
+        1873,
+        "doesnotexists@gmail.com",
+        "refresh",
+        expires_at=timedelta(hours=24)
+    )
+
+    response = await anon_client.post("/auth/refresh", json={"refresh_token": refresh_token})
+
+    assert response.status_code == 401
+    assert response.json() == {'data': {'errors': 'Authentication failed, invalid user.'}}
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_invalid_token_type(anon_client, generate_test_user):
+    refresh_token = create_jwt_token(
+        generate_test_user.id,
+        generate_test_user.email,
+        "access",
+        expires_at=timedelta(hours=24)
+    )
+
+    response = await anon_client.post("/auth/refresh", json={"refresh_token": refresh_token})
+
+    assert response.status_code == 401
+    assert response.json() == {'data': {'errors': 'Authentication failed, invalid token type.'}}
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_expired_token(anon_client, generate_test_user):
+    refresh_token = create_jwt_token(
+        generate_test_user.id,
+        generate_test_user.email,
+        "access",
+        expires_at=timedelta(hours=-24)
+    )
+
+    response = await anon_client.post("/auth/refresh", json={"refresh_token": refresh_token})
+
+    assert response.status_code == 401
+    assert response.json() == {'data': {'errors': 'Authentication failed, invalid or expired token.'}}
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_inactive_user(anon_client, generate_inactive_user):
+    refresh_token = create_jwt_token(
+        generate_inactive_user.id,
+        generate_inactive_user.email,
+        "refresh",
+        expires_at=timedelta(hours=24)
+    )
+
+    response = await anon_client.post("/auth/refresh", json={"refresh_token": refresh_token})
+
+    assert response.status_code == 401
+    assert response.json() == {'data': {'errors': 'Invalid refresh token.'}}
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_blocked_refresh(anon_client, generate_test_user, mocker):
+    mock_get_or_create = mocker.patch("src.apps.auth.router.get_or_create")
+    mock_get_or_create.return_value = (mocker.ANY, False)
+
+    refresh_token = create_jwt_token(
+        generate_test_user.id,
+        generate_test_user.email,
+        "refresh",
+        expires_at=timedelta(hours=24)
+    )
+
+    response = await anon_client.post("/auth/refresh", json={"refresh_token": refresh_token})
+
+    assert response.status_code == 403
+    assert response.json() == {'data': {'errors': 'Blocked refresh token.'}}
