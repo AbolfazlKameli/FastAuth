@@ -71,3 +71,85 @@ async def test_request_otp_to_register_email_already_exists(anon_client, mocker)
     mock_email_checker.assert_called_once_with(mocker.ANY, "newuser@gmail.com")
 
     assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_verify_otp_code_success(anon_client, generate_test_otp, mocker):
+    mock_get_otp = mocker.patch("src.apps.auth.router.get_otp_by_email", return_value=generate_test_otp)
+
+    mock_otp_validator = mocker.patch("src.apps.auth.router.is_otp_valid", return_value=True)
+
+    request_data = {
+        "email": "newuser@gmail.com",
+        "username": "newuser",
+        "password": "new@userPassword1",
+        "confirm_password": "new@userPassword1",
+        "otp_code": "123456",
+    }
+    response = await anon_client.post("/auth/register/verify", json=request_data)
+
+    mock_get_otp.assert_called_once_with(mocker.ANY, "newuser@gmail.com")
+    mock_otp_validator.assert_called_once_with("123456", generate_test_otp)
+
+    assert response.status_code == 201
+    assert response.json()["data"]["user"]["email"] == "newuser@gmail.com"
+
+
+@pytest.mark.asyncio
+async def test_verify_otp_code_expired(anon_client, generate_test_otp, mocker):
+    mocker.patch("src.apps.auth.router.get_otp_by_email", return_value=generate_test_otp)
+
+    fake_now = datetime.now() + timedelta(hours=1)
+    mocker.patch("src.apps.auth.services.datetime", wraps=datetime)
+    mocker.patch("src.apps.auth.services.datetime.now", return_value=fake_now)
+
+    request_data = {
+        "email": "newuser@gmail.com",
+        "username": "newuser",
+        "password": "new@userPassword1",
+        "confirm_password": "new@userPassword1",
+        "otp_code": "123456",
+    }
+    response = await anon_client.post("/auth/register/verify", json=request_data)
+
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_verify_otp_code_invalid(anon_client, generate_test_otp, mocker):
+    mocker.patch("src.apps.auth.router.get_otp_by_email", return_value=generate_test_otp)
+
+    fake_now = datetime.now()
+    mocker.patch("src.apps.auth.services.datetime", wraps=datetime)
+    mocker.patch("src.apps.auth.services.datetime.now", return_value=fake_now)
+
+    request_data = {
+        "email": "newuser@gmail.com",
+        "username": "newuser",
+        "password": "new@userPassword1",
+        "confirm_password": "new@userPassword1",
+        "otp_code": "123457",
+    }
+    response = await anon_client.post("/auth/register/verify", json=request_data)
+
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_verify_otp_code_user_already_exists(anon_client, generate_test_otp, mocker):
+    mocker.patch("src.apps.auth.router.get_otp_by_email", return_value=generate_test_otp)
+
+    mock_otp_validator = mocker.patch("src.apps.auth.router.is_otp_valid", return_value=True)
+
+    request_data = {
+        "email": "newuser@gmail.com",
+        "username": "testuser",  # This username is already taken.
+        "password": "new@userPassword1",
+        "confirm_password": "new@userPassword1",
+        "otp_code": "123456",
+    }
+    response = await anon_client.post("/auth/register/verify", json=request_data)
+
+    mock_otp_validator.assert_called_once_with("123456", generate_test_otp)
+
+    assert response.status_code == 400
