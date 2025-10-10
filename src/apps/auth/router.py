@@ -236,12 +236,23 @@ async def refresh_token(db: db_dependency, refresh_data: RefreshTokenRequest, re
     return {"data": {"message": "Token Refreshed successfully.", "access_token": access_token}}
 
 
-@router.get(
+@router.post(
     "/login/google",
     status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Error when email already exists."
+        },
+    }
 )
 @limiter.limit("5/minute")
-async def login_by_google(request: Request, response: Response):
+async def login_by_google(db: db_dependency, request: Request, request_data: UserRegisterRequest, response: Response):
+    email = str(request_data.email)
+
+    if (message := await check_blacklist_for_user(db, email)) is not None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=message)
+
     redirect_url = request.url_for("auth_by_google")
     return await oauth.google.authorize_redirect(request, redirect_url)
 
