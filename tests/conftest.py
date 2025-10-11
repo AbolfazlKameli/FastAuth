@@ -123,7 +123,8 @@ async def anon_client() -> AsyncGenerator[AsyncClient, None]:
 
 @pytest_asyncio.fixture(scope="function")
 async def user_auth_client(overrides_get_db, anon_client) -> AsyncGenerator[AsyncClient, None]:
-    user = await overrides_get_db.scalars(select(User).where(User.email == "testuser@gmail.com"))
+    stmt = await overrides_get_db.execute(select(User).where(User.email == "testuser@gmail.com"))
+    user = stmt.scalar_one_or_none()
     access_token = create_jwt_token(user.id, user.email, "access")
     anon_client.headers["Authorization"] = f"Bearer {access_token}"
     yield anon_client
