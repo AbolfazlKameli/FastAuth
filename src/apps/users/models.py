@@ -3,6 +3,7 @@ from enum import Enum
 
 import sqlalchemy as sa
 from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 from sqlalchemy.orm import mapped_column, Mapped
 
 from src.core.configs.settings import configs
@@ -37,7 +38,10 @@ class User(Base):
     def verify_password(self, plain_password: str) -> bool:
         if self.password.startswith(configs.UNUSABLE_PASSWORD_MARKER):
             return False
-        return pwd_hasher.verify(self.password, plain_password)
+        try:
+            return pwd_hasher.verify(self.password, plain_password)
+        except VerifyMismatchError:
+            return False
 
     def set_password(self, plain_password: str) -> None:
         self.password = self.hash_password(plain_password)
