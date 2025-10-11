@@ -4,7 +4,6 @@ from typing import AsyncGenerator
 import pytest_asyncio
 from argon2 import PasswordHasher
 from httpx import AsyncClient, ASGITransport
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from src.apps.auth.models import Otp
@@ -115,18 +114,14 @@ async def anon_client() -> AsyncGenerator[AsyncClient, None]:
 
 @pytest_asyncio.fixture(scope="function")
 async def user_auth_client(overrides_get_db, anon_client, generate_test_user) -> AsyncGenerator[AsyncClient, None]:
-    stmt = await overrides_get_db.execute(select(User).where(User.email == "testuser@gmail.com"))
-    user = stmt.scalar_one_or_none()
-    access_token = create_jwt_token(user.id, user.email, "access")
+    access_token = create_jwt_token(generate_test_user.id, generate_test_user.email, "access")
     anon_client.headers["Authorization"] = f"Bearer {access_token}"
     yield anon_client
 
 
 @pytest_asyncio.fixture(scope="function")
 async def admin_auth_client(overrides_get_db, anon_client, generate_admin_user) -> AsyncGenerator[AsyncClient, None]:
-    stmt = await overrides_get_db.execute(select(User).where(User.email == "adminuser@gmail.com"))
-    user = stmt.scalar_one_or_none()
-    access_token = create_jwt_token(user.id, user.email, "access")
+    access_token = create_jwt_token(generate_admin_user.id, generate_admin_user.email, "access")
     anon_client.headers["Authorization"] = f"Bearer {access_token}"
     yield anon_client
 
