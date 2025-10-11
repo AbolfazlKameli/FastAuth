@@ -98,6 +98,21 @@ async def test_verify_otp_code_success(anon_client, generate_test_otp, mocker):
 
 
 @pytest.mark.asyncio
+async def test_verify_otp_code_passwords_does_not_match(anon_client):
+    request_data = {
+        "email": "newuser@gmail.com",
+        "username": "newuser",
+        "otp_code": "123456",
+        "new_password": "@userNewPassword1",
+        "confirm_password": "@userNewPassword2"
+    }
+
+    response = await anon_client.post("/auth/register/verify", json=request_data)
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_verify_otp_code_expired(anon_client, generate_test_otp, mocker):
     mocker.patch("src.apps.auth.router.get_otp_by_email", return_value=generate_test_otp)
 
