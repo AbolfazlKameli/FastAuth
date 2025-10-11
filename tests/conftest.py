@@ -48,13 +48,6 @@ async def tear_up_and_down_database():
 
 @pytest_asyncio.fixture(scope="function")
 async def generate_test_user(overrides_get_db):
-    existing = await overrides_get_db.scalar(
-        select(User).where(User.email == "testuser@gmail.com")
-    )
-    if existing is not None:
-        await overrides_get_db.delete(existing)
-        await overrides_get_db.commit()
-
     user = User(username="testuser", email="testuser@gmail.com")
     user.set_password("new@userPassword1")
     overrides_get_db.add(user)
@@ -69,13 +62,6 @@ async def generate_test_user(overrides_get_db):
 
 @pytest_asyncio.fixture(scope="function")
 async def generate_admin_user(overrides_get_db):
-    existing = await overrides_get_db.scalar(
-        select(User).where(User.email == "adminuser@gmail.com")
-    )
-    if existing is not None:
-        await overrides_get_db.delete(existing)
-        await overrides_get_db.commit()
-
     user = User(username="adminuser", email="adminuser@gmail.com", role=UserRoles.admin.value)
     user.set_password("admin@userPassword1")
     overrides_get_db.add(user)
@@ -90,13 +76,6 @@ async def generate_admin_user(overrides_get_db):
 
 @pytest_asyncio.fixture(scope="function")
 async def generate_inactive_user(overrides_get_db):
-    existing = await overrides_get_db.scalar(
-        select(User).where(User.email == "inactiveuser@gmail.com")
-    )
-    if existing is not None:
-        await overrides_get_db.delete(existing)
-        await overrides_get_db.commit()
-
     user = User(username="inactiveuser", email="inactiveuser@gmail.com", is_active=False)
     user.set_password("inactive@userpassword1")
     overrides_get_db.add(user)
@@ -117,9 +96,6 @@ async def generate_test_otp(overrides_get_db):
     existing = await overrides_get_db.scalar(
         select(Otp).where(Otp.email == "testuser@gmail.com")
     )
-    if existing is not None:
-        await overrides_get_db.delete(existing)
-        await overrides_get_db.commit()
 
     otp = Otp(email="testuser@gmail.com", hashed_code=hashed_otp, expires_at=now + timedelta(minutes=2))
     overrides_get_db.add(otp)
