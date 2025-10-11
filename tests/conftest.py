@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sess
 
 from src.apps.auth.models import Otp
 from src.apps.auth.services import create_jwt_token
-from src.apps.users.models import User
+from src.apps.users.models import User, UserRoles
 from src.core.configs.settings import configs
 from src.dependencies import get_db
 from src.infrastructure.database import Base
@@ -57,6 +57,27 @@ async def generate_test_user(overrides_get_db):
 
     user = User(username="testuser", email="testuser@gmail.com")
     user.set_password("new@userPassword1")
+    overrides_get_db.add(user)
+    await overrides_get_db.commit()
+    await overrides_get_db.refresh(user)
+
+    yield user
+
+    await overrides_get_db.delete(user)
+    await overrides_get_db.commit()
+
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def generate_admin_user(overrides_get_db):
+    existing = await overrides_get_db.scalar(
+        select(User).where(User.email == "adminuser@gmail.com")
+    )
+    if existing is not None:
+        await overrides_get_db.delete(existing)
+        await overrides_get_db.commit()
+
+    user = User(username="adminuser", email="adminuser@gmail.com", role=UserRoles.admin.value)
+    user.set_password("admin@userPassword1")
     overrides_get_db.add(user)
     await overrides_get_db.commit()
     await overrides_get_db.refresh(user)
@@ -124,6 +145,15 @@ async def anon_client() -> AsyncGenerator[AsyncClient, None]:
 @pytest_asyncio.fixture(scope="function")
 async def user_auth_client(overrides_get_db, anon_client) -> AsyncGenerator[AsyncClient, None]:
     stmt = await overrides_get_db.execute(select(User).where(User.email == "testuser@gmail.com"))
+    user = stmt.scalar_one_or_none()
+    access_token = create_jwt_token(user.id, user.email, "access")
+    anon_client.headers["Authorization"] = f"Bearer {access_token}"
+    yield anon_client
+
+
+@pytest_asyncio.fixture(scope="function")
+async def admin_auth_client(overrides_get_db, anon_client) -> AsyncGenerator[AsyncClient, None]:
+    stmt = await overrides_get_db.execute(select(User).where(User.email == "adminuser@gmail.com"))
     user = stmt.scalar_one_or_none()
     access_token = create_jwt_token(user.id, user.email, "access")
     anon_client.headers["Authorization"] = f"Bearer {access_token}"
