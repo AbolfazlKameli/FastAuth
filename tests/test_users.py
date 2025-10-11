@@ -208,3 +208,67 @@ async def test_set_password_otp_code_invalid(overrides_get_db, anon_client, gene
 
     assert response.status_code == 403
     assert (await overrides_get_db.scalars(select(Otp))).all() == [generate_test_otp]
+
+
+@pytest.mark.asyncio
+async def test_change_password_success(overrides_get_db, user_auth_client, generate_test_user):
+    request_data = {
+        "old_password": "new@userPassword1",
+        "new_password": "@userNewPassword1",
+        "confirm_password": "@userNewPassword1"
+    }
+    response = await user_auth_client.post("/users/profile/password/change", json=request_data)
+
+    await overrides_get_db.refresh(generate_test_user)
+
+    assert response.status_code == 200
+    assert generate_test_user.verify_password("@userNewPassword1")
+
+
+@pytest.mark.asyncio
+async def test_change_password_incorrect_password(overrides_get_db, user_auth_client, generate_test_user):
+    request_data = {
+        "old_password": "incor@userPassword1",
+        "new_password": "@userNewPassword1",
+        "confirm_password": "@userNewPassword1"
+    }
+    response = await user_auth_client.post("/users/profile/password/change", json=request_data)
+
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_change_password_missing_authentication_token(anon_client):
+    request_data = {
+        "old_password": "new@userpassword1",
+        "new_password": "@userNewPassword1",
+        "confirm_password": "@userNewPassword1"
+    }
+    response = await anon_client.post("/users/profile/password/change", json=request_data)
+
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_change_password_inactive_user(anon_client, inactive_user_client):
+    request_data = {
+        "old_password": "new@userPassword1",
+        "new_password": "@userNewPassword1",
+        "confirm_password": "@userNewPassword1"
+    }
+    response = await inactive_user_client.post("/users/profile/password/change", json=request_data)
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_change_password_passwords_does_not_match(overrides_get_db, user_auth_client):
+    request_data = {
+        "old_password": "new@userPassword1",
+        "new_password": "@userNewPassword1",
+        "confirm_password": "@userNewPassword2"
+    }
+
+    response = await user_auth_client.post("/users/profile/password/change", json=request_data)
+
+    assert response.status_code == 422
