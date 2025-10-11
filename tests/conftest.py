@@ -129,3 +129,14 @@ async def admin_auth_client(overrides_get_db, anon_client, generate_admin_user) 
     access_token = create_jwt_token(user.id, user.email, "access")
     anon_client.headers["Authorization"] = f"Bearer {access_token}"
     yield anon_client
+
+
+@pytest_asyncio.fixture(scope="function")
+async def inactive_user_client(
+        overrides_get_db,
+        anon_client,
+        generate_inactive_user
+) -> AsyncGenerator[AsyncClient, None]:
+    access_token = create_jwt_token(generate_inactive_user.id, generate_inactive_user.email, "access")
+    anon_client.headers["Authorization"] = f"Bearer {access_token}"
+    yield anon_client
