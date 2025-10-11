@@ -93,10 +93,6 @@ async def generate_test_otp(overrides_get_db):
     hashed_otp = hasher.hash("123456")
     now = datetime.now()
 
-    existing = await overrides_get_db.scalar(
-        select(Otp).where(Otp.email == "testuser@gmail.com")
-    )
-
     otp = Otp(email="testuser@gmail.com", hashed_code=hashed_otp, expires_at=now + timedelta(minutes=2))
     overrides_get_db.add(otp)
     await overrides_get_db.commit()
@@ -104,9 +100,8 @@ async def generate_test_otp(overrides_get_db):
 
     yield otp
 
-    if existing is not None:
-        await overrides_get_db.delete(otp)
-        await overrides_get_db.commit()
+    await overrides_get_db.delete(otp)
+    await overrides_get_db.commit()
 
 
 @pytest_asyncio.fixture(scope="function")
