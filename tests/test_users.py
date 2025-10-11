@@ -2,7 +2,9 @@ from datetime import datetime, timedelta
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy import select
 
+from src.apps.auth.models import Otp
 from src.apps.auth.services import create_jwt_token
 
 
@@ -126,3 +128,83 @@ async def test_request_otp_to_reset_password_invalid_email(anon_client):
     response = await anon_client.post("/users/profile/password/reset", json={"email": "doesnotexist@gmail.com"})
 
     assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_set_password_success(overrides_get_db, anon_client, mocker, generate_test_otp, generate_test_user):
+    mock_get_otp = mocker.patch("src.apps.users.router.get_otp_by_email", return_value=generate_test_otp)
+
+    mock_otp_validator = mocker.patch("src.apps.users.router.is_otp_valid", return_value=True)
+
+    request_data = {
+        "email": "testuser@gmail.com",
+        "otp_code": "123456",
+        "new_password": "@userNewPassword1",
+        "confirm_password": "@userNewPassword1"
+    }
+
+    response = await anon_client.post("/users/profile/password/set", json=request_data)
+
+    await overrides_get_db.refresh(generate_test_user)
+
+    mock_get_otp.assert_called_once_with(mocker.ANY, "testuser@gmail.com")
+    mock_otp_validator.assert_called_once_with("123456", generate_test_otp)
+
+    assert response.status_code == 200
+    assert generate_test_user.verify_password("@userNewPassword1")
+    assert (await overrides_get_db.scalars(select(Otp))).all() == []
+
+
+@pytest.mark.asyncio
+async def test_set_password_passwords_does_not_match(overrides_get_db, generate_test_otp, anon_client):
+    request_data = {
+        "email": "testuser@gmail.com",
+        "otp_code": "123456",
+        "new_password": "@userNewPassword1",
+        "confirm_password": "@userNewPassword2"
+    }
+
+    response = await anon_client.post("/users/profile/password/set", json=request_data)
+
+    assert response.status_code == 422
+    assert (await overrides_get_db.scalars(select(Otp))).all() == [generate_test_otp]
+
+
+@pytest.mark.asyncio
+async def test_set_password_otp_expired(overrides_get_db, anon_client, generate_test_otp, mocker):
+    mocker.patch("src.apps.users.router.get_otp_by_email", return_value=generate_test_otp)
+
+    fake_now = datetime.now() + timedelta(hours=1)
+    mocker.patch("src.apps.auth.services.datetime", wraps=datetime)
+    mocker.patch("src.apps.auth.services.datetime.now", return_value=fake_now)
+
+    request_data = {
+        "email": "testuser@gmail.com",
+        "otp_code": "123456",
+        "new_password": "@userNewPassword1",
+        "confirm_password": "@userNewPassword1"
+    }
+    response = await anon_client.post("/users/profile/password/set", json=request_data)
+
+    assert response.status_code == 403
+    assert (await overrides_get_db.scalars(select(Otp))).all() == [generate_test_otp]
+
+
+@pytest.mark.asyncio
+async def test_set_password_otp_code_invalid(overrides_get_db, anon_client, generate_test_otp, mocker):
+    mocker.patch("src.apps.users.router.get_otp_by_email", return_value=generate_test_otp)
+
+    fake_now = datetime.now()
+    mocker.patch("src.apps.auth.services.datetime", wraps=datetime)
+    mocker.patch("src.apps.auth.services.datetime.now", return_value=fake_now)
+
+    request_data = {
+        "email": "testuser@gmail.com",
+        "otp_code": "123457",
+        "new_password": "@userNewPassword1",
+        "confirm_password": "@userNewPassword1"
+    }
+    response = await anon_client.post("/users/profile/password/set", json=request_data)
+
+    assert response.status_code == 403
+    assert (await overrides_get_db.scalars(select(Otp))).all() == [generate_test_otp]
