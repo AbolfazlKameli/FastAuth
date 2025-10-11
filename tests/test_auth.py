@@ -2,7 +2,9 @@ from datetime import datetime, timedelta
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy import select
 
+from src.apps.auth.models import Otp
 from src.apps.auth.services import create_jwt_token
 
 
@@ -76,7 +78,7 @@ async def test_request_otp_to_register_email_already_exists(anon_client, mocker)
 
 
 @pytest.mark.asyncio
-async def test_verify_otp_code_success(anon_client, generate_test_otp, mocker):
+async def test_verify_otp_code_success(overrides_get_db, anon_client, generate_test_otp, mocker):
     mock_get_otp = mocker.patch("src.apps.auth.router.get_otp_by_email", return_value=generate_test_otp)
 
     mock_otp_validator = mocker.patch("src.apps.auth.router.is_otp_valid", return_value=True)
@@ -95,10 +97,11 @@ async def test_verify_otp_code_success(anon_client, generate_test_otp, mocker):
 
     assert response.status_code == 201
     assert response.json()["data"]["user"]["email"] == "newuser@gmail.com"
+    assert (await overrides_get_db.scalars(select(Otp))).all() == []
 
 
 @pytest.mark.asyncio
-async def test_verify_otp_code_passwords_does_not_match(anon_client):
+async def test_verify_otp_code_passwords_does_not_match(overrides_get_db, generate_test_otp, anon_client):
     request_data = {
         "email": "newuser@gmail.com",
         "username": "newuser",
@@ -110,10 +113,11 @@ async def test_verify_otp_code_passwords_does_not_match(anon_client):
     response = await anon_client.post("/auth/register/verify", json=request_data)
 
     assert response.status_code == 422
+    assert (await overrides_get_db.scalars(select(Otp))).all() == [generate_test_otp]
 
 
 @pytest.mark.asyncio
-async def test_verify_otp_code_expired(anon_client, generate_test_otp, mocker):
+async def test_verify_otp_code_expired(overrides_get_db, anon_client, generate_test_otp, mocker):
     mocker.patch("src.apps.auth.router.get_otp_by_email", return_value=generate_test_otp)
 
     fake_now = datetime.now() + timedelta(hours=1)
@@ -130,10 +134,11 @@ async def test_verify_otp_code_expired(anon_client, generate_test_otp, mocker):
     response = await anon_client.post("/auth/register/verify", json=request_data)
 
     assert response.status_code == 403
+    assert (await overrides_get_db.scalars(select(Otp))).all() == [generate_test_otp]
 
 
 @pytest.mark.asyncio
-async def test_verify_otp_code_invalid(anon_client, generate_test_otp, mocker):
+async def test_verify_otp_code_invalid(overrides_get_db, anon_client, generate_test_otp, mocker):
     mocker.patch("src.apps.auth.router.get_otp_by_email", return_value=generate_test_otp)
 
     fake_now = datetime.now()
@@ -150,10 +155,11 @@ async def test_verify_otp_code_invalid(anon_client, generate_test_otp, mocker):
     response = await anon_client.post("/auth/register/verify", json=request_data)
 
     assert response.status_code == 403
+    assert (await overrides_get_db.scalars(select(Otp))).all() == [generate_test_otp]
 
 
 @pytest.mark.asyncio
-async def test_verify_otp_code_user_already_exists(anon_client, generate_test_otp, mocker):
+async def test_verify_otp_code_user_already_exists(overrides_get_db, anon_client, generate_test_otp, mocker):
     mocker.patch("src.apps.auth.router.get_otp_by_email", return_value=generate_test_otp)
 
     mock_otp_validator = mocker.patch("src.apps.auth.router.is_otp_valid", return_value=True)
@@ -170,6 +176,7 @@ async def test_verify_otp_code_user_already_exists(anon_client, generate_test_ot
     mock_otp_validator.assert_called_once_with("123456", generate_test_otp)
 
     assert response.status_code == 400
+    assert (await overrides_get_db.scalars(select(Otp))).all() == [generate_test_otp]
 
 
 @pytest.mark.asyncio
