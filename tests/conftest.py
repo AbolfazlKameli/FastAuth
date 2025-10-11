@@ -46,7 +46,7 @@ async def tear_up_and_down_database():
         await conn.run_sync(Base.metadata.drop_all)
 
 
-@pytest_asyncio.fixture(scope="function", autouse=True)
+@pytest_asyncio.fixture(scope="function")
 async def generate_test_user(overrides_get_db):
     existing = await overrides_get_db.scalar(
         select(User).where(User.email == "testuser@gmail.com")
@@ -67,7 +67,7 @@ async def generate_test_user(overrides_get_db):
     await overrides_get_db.commit()
 
 
-@pytest_asyncio.fixture(scope="function", autouse=True)
+@pytest_asyncio.fixture(scope="function")
 async def generate_admin_user(overrides_get_db):
     existing = await overrides_get_db.scalar(
         select(User).where(User.email == "adminuser@gmail.com")
@@ -143,7 +143,7 @@ async def anon_client() -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest_asyncio.fixture(scope="function")
-async def user_auth_client(overrides_get_db, anon_client) -> AsyncGenerator[AsyncClient, None]:
+async def user_auth_client(overrides_get_db, anon_client, generate_test_user) -> AsyncGenerator[AsyncClient, None]:
     stmt = await overrides_get_db.execute(select(User).where(User.email == "testuser@gmail.com"))
     user = stmt.scalar_one_or_none()
     access_token = create_jwt_token(user.id, user.email, "access")
@@ -152,7 +152,7 @@ async def user_auth_client(overrides_get_db, anon_client) -> AsyncGenerator[Asyn
 
 
 @pytest_asyncio.fixture(scope="function")
-async def admin_auth_client(overrides_get_db, anon_client) -> AsyncGenerator[AsyncClient, None]:
+async def admin_auth_client(overrides_get_db, anon_client, generate_admin_user) -> AsyncGenerator[AsyncClient, None]:
     stmt = await overrides_get_db.execute(select(User).where(User.email == "adminuser@gmail.com"))
     user = stmt.scalar_one_or_none()
     access_token = create_jwt_token(user.id, user.email, "access")

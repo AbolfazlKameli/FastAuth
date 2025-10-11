@@ -158,7 +158,7 @@ async def test_verify_otp_code_user_already_exists(anon_client, generate_test_ot
 
 
 @pytest.mark.asyncio
-async def test_user_login_success(anon_client):
+async def test_user_login_success(anon_client, generate_test_user):
     request_data = {
         "email": "testuser@gmail.com",
         "password": "new@userPassword1"
