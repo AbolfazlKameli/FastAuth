@@ -1,5 +1,7 @@
 import pytest
 
+from src.apps.auth.services import create_jwt_token
+
 
 @pytest.mark.asyncio
 async def test_list_users_success(admin_auth_client):
@@ -40,3 +42,23 @@ async def test_list_users_missing_authentication_token(anon_client):
 
     assert response.status_code == 403
     assert response.json() == {'data': {'errors': 'Not authenticated'}}
+
+
+@pytest.mark.asyncio
+async def test_user_profile_success(user_auth_client):
+    response = await user_auth_client.get("/users/profile")
+
+    assert response.status_code == 200
+    assert response.json()["data"]["username"] == "testuser"
+
+
+@pytest.mark.asyncio
+async def test_user_profile_inactive_user(anon_client, generate_inactive_user):
+    auth_token = create_jwt_token(generate_inactive_user.id, generate_inactive_user.email, "access")
+
+    anon_client.headers["Authorization"] = f"Bearer {auth_token}"
+
+    response = await anon_client.get("/users/profile")
+
+    assert response.status_code == 401
+    assert response.json() == {'data': {'errors': 'Inactive account.'}}
