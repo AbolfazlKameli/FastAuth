@@ -24,6 +24,9 @@ itsdangerous = "*"
 httpx = "*"
 
 [dev-packages]
+pytest-asyncio = "*"
+pytest = "*"
+aiosqlite = "*"
 
 [requires]
 python_version = "3.13"
