@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from src.apps.auth.models import Otp
 from src.apps.auth.services import create_jwt_token
+from tests.conftest import overrides_get_db
 
 
 @pytest.mark.asyncio
@@ -272,3 +273,59 @@ async def test_change_password_passwords_does_not_match(overrides_get_db, user_a
     response = await user_auth_client.post("/users/profile/password/change", json=request_data)
 
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_user_update_profile_without_email_success(overrides_get_db, generate_test_user, user_auth_client):
+    response = await user_auth_client.put("/users/profile/update", json={"username": "updatedusername"})
+    await overrides_get_db.refresh(generate_test_user)
+
+    assert response.status_code == 200
+    assert generate_test_user.username == "updatedusername"
+
+
+@pytest.mark.asyncio
+async def test_user_update_profile_with_email(overrides_get_db, generate_test_user, user_auth_client, mocker):
+    mock_generate_otp = mocker.patch("src.apps.auth.services.generate_otp")
+    mock_generate_otp.return_value = (mocker.ANY, "123456", "hashed_code", True, datetime.now() + timedelta(minutes=2))
+
+    mock_send_otp_task = mocker.patch("src.apps.auth.services.send_otp_code_email", return_value=None)
+    mock_send_otp_task.delay = mocker.MagicMock()
+
+    request_data = {
+        "username": "updatedusername",
+        "email": "updatedemail@gmail.com"
+    }
+    response = await user_auth_client.put("/users/profile/update", json=request_data)
+
+    await overrides_get_db.refresh(generate_test_user)
+
+    assert response.status_code == 200
+    assert generate_test_user.email == "updatedemail@gmail.com"
+    assert generate_test_user.username == "updatedusername"
+    assert not generate_test_user.is_active
+
+
+@pytest.mark.asyncio
+async def test_user_update_profile_missing_authentication_token(anon_client):
+    response = await anon_client.put("/users/profile/update", json={"username": "updatedusername"})
+
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_user_update_profile_inactive_user(generate_inactive_user, inactive_user_client):
+    response = await inactive_user_client.put("/users/profile/update", json={"username": "updatedusername"})
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_user_update_profile_username_email_already_exists(
+        generate_inactive_user,
+        generate_test_user,
+        user_auth_client
+):
+    response = await user_auth_client.put("/users/profile/update", json={"email": "inactiveuser@gmail.com"})
+
+    assert response.status_code == 400
