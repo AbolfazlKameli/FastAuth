@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from src.apps.auth.models import Otp
 from src.apps.auth.services import create_jwt_token
-from tests.conftest import overrides_get_db
+from tests.conftest import overrides_get_db, anon_client
 
 
 @pytest.mark.asyncio
@@ -329,3 +329,76 @@ async def test_user_update_profile_username_email_already_exists(
     response = await user_auth_client.put("/users/profile/update", json={"email": "inactiveuser@gmail.com"})
 
     assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_activate_user_success(
+        overrides_get_db,
+        generate_test_otp,
+        anon_client,
+        generate_inactive_user,
+        mocker
+):
+    mock_get_otp = mocker.patch("src.apps.users.router.get_otp_by_email", return_value=generate_test_otp)
+
+    mock_otp_validator = mocker.patch("src.apps.users.router.is_otp_valid", return_value=True)
+
+    request_data = {
+        "email": "inactiveuser@gmail.com",
+        "otp_code": "123456"
+    }
+    response = await anon_client.post("/users/profile/activate", json=request_data)
+
+    await overrides_get_db.refresh(generate_inactive_user)
+
+    mock_get_otp.assert_called_once_with(mocker.ANY, "inactiveuser@gmail.com")
+    mock_otp_validator.assert_called_once_with("123456", generate_test_otp)
+
+    assert response.status_code == 200
+    assert generate_inactive_user.is_active
+
+
+@pytest.mark.asyncio
+async def test_activate_user_otp_expired(
+        overrides_get_db,
+        generate_test_otp,
+        anon_client,
+        mocker
+):
+    mocker.patch("src.apps.auth.router.get_otp_by_email", return_value=generate_test_otp)
+
+    fake_now = datetime.now() + timedelta(hours=1)
+    mocker.patch("src.apps.auth.services.datetime", wraps=datetime)
+    mocker.patch("src.apps.auth.services.datetime.now", return_value=fake_now)
+
+    request_data = {
+        "email": "testuser@gmail.com",
+        "otp_code": "123456"
+    }
+    response = await anon_client.post("/users/profile/activate", json=request_data)
+
+    assert response.status_code == 403
+    assert (await overrides_get_db.scalars(select(Otp))).all() == [generate_test_otp]
+
+
+@pytest.mark.asyncio
+async def test_activate_user_otp_invalid(
+        overrides_get_db,
+        generate_test_otp,
+        anon_client,
+        mocker
+):
+    mocker.patch("src.apps.users.router.get_otp_by_email", return_value=generate_test_otp)
+
+    fake_now = datetime.now()
+    mocker.patch("src.apps.auth.services.datetime", wraps=datetime)
+    mocker.patch("src.apps.auth.services.datetime.now", return_value=fake_now)
+
+    request_data = {
+        "email": "testuser@gmail.com",
+        "otp_code": "123457"
+    }
+    response = await anon_client.post("/users/profile/activate", json=request_data)
+
+    assert response.status_code == 403
+    assert (await overrides_get_db.scalars(select(Otp))).all() == [generate_test_otp]
