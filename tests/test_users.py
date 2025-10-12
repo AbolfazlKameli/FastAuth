@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from src.apps.auth.models import Otp
 from src.apps.auth.services import create_jwt_token
+from src.apps.users.models import User
 from tests.conftest import overrides_get_db, anon_client
 
 
@@ -402,3 +403,27 @@ async def test_activate_user_otp_invalid(
 
     assert response.status_code == 403
     assert (await overrides_get_db.scalars(select(Otp))).all() == [generate_test_otp]
+
+
+@pytest.mark.asyncio
+async def test_delete_user_account_success(overrides_get_db, generate_test_user, user_auth_client):
+    response = await user_auth_client.delete("/users/profile/delete")
+
+    assert response.status_code == 204
+    assert (
+               await overrides_get_db.scalars(select(User).where(User.email == "testuser@gmail.com"))
+           ).one_or_none() is None
+
+
+@pytest.mark.asyncio
+async def test_delete_user_account_missing_authentication_token(overrides_get_db, anon_client):
+    response = await anon_client.delete("/users/profile/delete")
+
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_delete_user_account_inactive_user(generate_inactive_user, inactive_user_client):
+    response = await inactive_user_client.delete("/users/profile/delete")
+
+    assert response.status_code == 401
