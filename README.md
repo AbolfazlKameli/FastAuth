@@ -98,7 +98,7 @@ Once running, open your browser at:
 * [x] Docker support
 * [X] Rate limiting & IP-based throttling
 * [x] Social login (Google, GitHub, etc.)
-* [ ] Automatic tests
+* [X] Automatic tests
 
 
 ## 🤝 Contributing
