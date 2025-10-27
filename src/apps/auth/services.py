@@ -10,6 +10,7 @@ from fastapi import Depends, status
 from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
+from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -109,11 +110,14 @@ async def generate_otp(db: AsyncSession, email: str) -> (Otp, str, str, bool, da
 
 
 async def refresh_otp_code(db: AsyncSession, otp: Otp, hashed_otp: str, expires_at: datetime):
-    otp.hashed_code = hashed_otp
-    otp.expires_at = expires_at
-    otp.attempts += 1
-    db.add(otp)
+    stmt = update(Otp).where(Otp.id == otp.id).values(
+        hashed_code=hashed_otp,
+        expires_at=expires_at,
+        attempts=Otp.attempts + 1
+    )
+    await db.execute(stmt)
     await db.commit()
+    await db.refresh(otp)
 
 
 async def generate_and_send_otp(db: AsyncSession, email: str):
