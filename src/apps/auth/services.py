@@ -83,11 +83,6 @@ async def check_blacklist_for_user(db: AsyncSession, email: str) -> str | None:
     return response
 
 
-async def handle_user_blacklist(db: AsyncSession, email: str) -> str:
-    await get_or_create(db, OtpBlacklist, email=email)
-    return "Too many requests. Your email has been added to the blacklist."
-
-
 async def check_email_exists(db: AsyncSession, email: str) -> bool:
     user = await get_user_by_email(db, email)
     return user is not None
@@ -124,7 +119,8 @@ async def generate_and_send_otp(db: AsyncSession, email: str):
     otp_obj, otp_code, hashed_code, is_new, expires_at = await generate_otp(db, email)
 
     if not is_new and otp_obj.attempts >= configs.OTP_MAX_ATTEMPTS:
-        message = await handle_user_blacklist(db, email)
+        await get_or_create(db, OtpBlacklist, email=email)
+        message = "Too many requests. Your email has been added to the blacklist."
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=message)
 
     if not is_new:

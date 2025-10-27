@@ -38,6 +38,11 @@ LOGGING_CONFIG = {
             'handlers': ['console_handler', 'file_handler'],
             'propagate': False,
         },
+        "sqlalchemy.engine": {
+            "level": "INFO",
+            "formatter": "sqlalchemy_formatter",
+            "handlers": ["file_handler"],
+        }
     }
 }
 
