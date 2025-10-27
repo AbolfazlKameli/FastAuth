@@ -13,9 +13,12 @@ async def get_user_by_id(db: AsyncSession, user_id: int):
     return user
 
 
-async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
-    stmt = await db.execute(select(User).where(User.email == email))
-    return stmt.scalar_one_or_none()
+async def get_user_by_email(db: AsyncSession, email: str, for_update: bool = False) -> User | None:
+    stmt = select(User).where(User.email == email)
+    if for_update:
+        stmt = stmt.with_for_update()
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
 
 
 async def user_exists_with_email_or_username(db: AsyncSession, email: str, username: str) -> bool:

@@ -252,7 +252,7 @@ async def activate_user_account(
     if not is_otp_valid(otp_code, otp_obj):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid or expired OTP code.")
 
-    user = await get_user_by_email(db, email)
+    user = await get_user_by_email(db, email, for_update=True)
     user.is_active = True
     db.add(user)
     await db.commit()
