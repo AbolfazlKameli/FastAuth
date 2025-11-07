@@ -23,6 +23,11 @@ services:
       - redis_data:/data
     networks:
       - fastauth_network
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
   fastauth:
     container_name: fastauth
@@ -43,7 +48,7 @@ services:
       db:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
 
   celery:
     container_name: fastauth_celery
@@ -59,7 +64,7 @@ services:
       - fastauth_network
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
       fastauth:
         condition: service_started
 
