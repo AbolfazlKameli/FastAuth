@@ -8,4 +8,4 @@
 
 alembic upgrade head
 
-uvicorn src.main:app --workers 5 --host 0.0.0.0 --port 8000
+uvicorn --workers $(( 2 * `cat /proc/cpuinfo | grep 'core id' | wc -l` + 1 )) --host 0.0.0.0 --port 8000 src.main:app
