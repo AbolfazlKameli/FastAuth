@@ -22,6 +22,7 @@ slowapi = "*"
 authlib = "*"
 itsdangerous = "*"
 httpx = "*"
+sentry-sdk = {extras = ["fastapi"], version = "*"}
 
 [dev-packages]
 pytest-asyncio = "*"
