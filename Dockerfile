@@ -12,7 +12,8 @@ WORKDIR /usr/src/fastauth/
 
 COPY Pipfile Pipfile.lock /usr/src/fastauth/
 
-RUN pip install --no-cache-dir pipenv && PIPENV_VENV_IN_PROJECT=0 pipenv install --deploy --system
+RUN pip install --no-cache-dir pipenv && PIPENV_VENV_IN_PROJECT=0 pipenv install --deploy --system && \
+    apk add curl
 
 ARG UID=10001
 RUN adduser \

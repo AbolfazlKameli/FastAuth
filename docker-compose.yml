@@ -42,13 +42,34 @@ services:
       - envs/.prod.env
     networks:
       - fastauth_network
-    ports:
-      - "8000:8000"
+    expose:
+      - 8000
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health-check" ]
+      interval: 10s
+      timeout: 3s
+      retries: 2
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  web:
+    container_name: fastauth_web
+    image: docker.arvancloud.ir/nginx:trixie-perl
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/fastauth.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - fastauth_network
+    ports:
+      - "80:80"
+    depends_on:
+      fastauth:
+        condition: service_healthy
+
 
   celery:
     container_name: fastauth_celery
