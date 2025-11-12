@@ -1,4 +1,4 @@
-from src.infrastructure.celery_worker.celery_app import celery_app
+from src.infrastructure.celery_app import celery_app
 from src.infrastructure.email_handler import EmailHandler
 
 

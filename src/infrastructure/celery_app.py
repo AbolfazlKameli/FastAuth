@@ -1,4 +1,6 @@
-from src.core.configs.settings import configs
+from celery import Celery
+
+from src.core.settings import configs
 
 CELERY_CONFIG = {
     'broker_url': configs.CELERY_BROKER_URL,
@@ -13,3 +15,6 @@ CELERY_CONFIG = {
         'src.apps.tasks',
     )
 }
+
+celery_app = Celery(__name__)
+celery_app.conf.update(CELERY_CONFIG)
