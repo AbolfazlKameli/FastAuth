@@ -1,21 +1,9 @@
 from typing import Annotated
 
-from fastapi import Depends, status
+from fastapi import Depends
 
-from src.core.schemas import DataSchema, ErrorResponse
 from .auth.services import get_admin_user, get_active_user
 from .users.models import User
 
 user_dependency = Annotated[User, Depends(get_active_user)]
 admin_dependency = Annotated[User, Depends(get_admin_user)]
-
-auth_responses = {
-    status.HTTP_401_UNAUTHORIZED: {
-        "model": DataSchema[ErrorResponse],
-        "description": "Authentication failed."
-    },
-    status.HTTP_403_FORBIDDEN: {
-        "model": DataSchema[ErrorResponse],
-        "description": "Not Permitted."
-    }
-}

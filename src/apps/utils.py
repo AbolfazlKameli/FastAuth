@@ -1,6 +1,9 @@
+from fastapi import status
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.schemas import ErrorResponse, DataSchema
 
 
 async def get_or_create(db: AsyncSession, model, defaults: dict | None = None, **kwargs):
@@ -19,3 +22,15 @@ async def get_or_create(db: AsyncSession, model, defaults: dict | None = None, *
         except IntegrityError:
             stmt = await db.scalars(select(model).filter_by(**kwargs))
             return stmt.first(), False
+
+
+auth_responses = {
+    status.HTTP_401_UNAUTHORIZED: {
+        "model": DataSchema[ErrorResponse],
+        "description": "Authentication failed."
+    },
+    status.HTTP_403_FORBIDDEN: {
+        "model": DataSchema[ErrorResponse],
+        "description": "Not Permitted."
+    }
+}
