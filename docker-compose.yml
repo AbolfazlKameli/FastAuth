@@ -87,7 +87,7 @@ services:
       redis:
         condition: service_healthy
       fastauth:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   postgres_data:
