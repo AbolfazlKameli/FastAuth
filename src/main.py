@@ -12,10 +12,9 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from src.apps.auth.router import router as auth_router
 from src.apps.users.router import router as user_router
-from src.core.configs.logging_config import setup_logging
-from src.core.configs.settings import configs
 from src.core.limiter import limiter
 from src.core.schemas import DataSchema, HealthCheckResponse
+from src.core.settings import configs, setup_logging
 from src.infrastructure.redis_pool import redis_fastapi
 
 setup_logging()

@@ -1,7 +1,7 @@
 from email.message import EmailMessage
 from smtplib import SMTP_SSL, SMTPException
 
-from src.core import configs
+from src.core.settings import configs
 
 
 class EmailHandler:

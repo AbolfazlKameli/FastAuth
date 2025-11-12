@@ -4,12 +4,11 @@ from datetime import timedelta, datetime, timezone
 from fastapi import APIRouter, status, HTTPException, Response, Request
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from src.apps.dependencies import auth_responses
 from src.apps.users.repository import user_exists_with_email_or_username, get_user_by_email
-from src.apps.utils import get_or_create
-from src.core.configs.settings import configs
+from src.apps.utils import get_or_create, auth_responses
 from src.core.limiter import limiter
 from src.core.schemas import DataSchema, ErrorResponse
+from src.core.settings import configs
 from src.dependencies import db_dependency
 from .models import RefreshTokenBlacklist
 from .repository import get_otp_by_email

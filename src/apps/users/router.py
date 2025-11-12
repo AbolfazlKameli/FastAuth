@@ -5,7 +5,8 @@ from fastapi_cache.decorator import cache
 
 from src.apps.auth.repository import get_otp_by_email
 from src.apps.auth.services import check_blacklist_for_user, is_otp_valid, delete_otp, generate_and_send_otp
-from src.apps.dependencies import user_dependency, admin_dependency, auth_responses
+from src.apps.dependencies import user_dependency, admin_dependency
+from src.apps.utils import auth_responses
 from src.core.limiter import user_limiter, admin_limiter, limiter
 from src.core.schemas import PaginatedResponse, DataSchema, ErrorResponse, SuccessResponse
 from src.dependencies import db_dependency
