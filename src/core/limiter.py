@@ -1,7 +1,7 @@
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from src.core.configs.settings import configs
+from src.core.settings import configs
 
 if configs.ENV_STATE == "test":
     limiter = Limiter(key_func=lambda: "", headers_enabled=True)

@@ -18,7 +18,7 @@ from src.apps.tasks import send_otp_code_email
 from src.apps.users.models import User, UserRoles
 from src.apps.users.repository import get_user_by_email, create_user, get_user_by_id
 from src.apps.utils import get_or_create
-from src.core.configs.settings import configs
+from src.core.settings import configs
 from src.dependencies import db_dependency
 from .models import Otp, OtpBlacklist
 from .repository import get_active_blacklist_by_email

@@ -6,7 +6,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from sqlalchemy.orm import mapped_column, Mapped
 
-from src.core.configs.settings import configs
+from src.core.settings import configs
 from src.infrastructure.database import Base
 
 pwd_hasher = PasswordHasher()
