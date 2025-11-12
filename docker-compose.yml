@@ -34,7 +34,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: fastauth:0.3.0
+    image: fastauth:0.5.1
     volumes:
       - fastauth_data:/usr/src/fastauth
     env_file:
@@ -73,7 +73,7 @@ services:
 
   celery:
     container_name: fastauth_celery
-    image: fastauth:0.3.0
+    image: fastauth:0.5.1
     entrypoint: celery -A src.infrastructure worker -l INFO
     volumes:
       - fastauth_data:/usr/src/fastauth
