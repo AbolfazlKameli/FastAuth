@@ -1,7 +1,8 @@
 import random
 from datetime import timedelta, datetime, timezone
+from typing import Annotated
 
-from fastapi import APIRouter, status, HTTPException, Response, Request
+from fastapi import APIRouter, status, HTTPException, Response, Request, Cookie
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from src.apps.users.repository import user_exists_with_email_or_username, get_user_by_email
@@ -18,8 +19,7 @@ from .schemas import (
     OtpVerifyUserRegisterRequest,
     UserRegisterResponse,
     UserLoginRequest,
-    UserTokenResponse,
-    RefreshTokenRequest
+    UserTokenResponse
 )
 from .services import (
     check_blacklist_for_user,
@@ -174,7 +174,7 @@ async def user_login(
 
     refresh_token = create_jwt_token(user.id, email, "refresh", timedelta(hours=24))
     response.set_cookie(
-        key="refresh_auth",
+        key="refresh_token",
         value=refresh_token,
         httponly=True,
         secure=(not configs.DEBUG),
@@ -200,8 +200,10 @@ async def user_login(
     }
 )
 @limiter.limit("5/minute")
-async def refresh_token(db: db_dependency, refresh_data: RefreshTokenRequest, response: Response, request: Request):
-    user_id = decode_refresh_token(refresh_data.refresh_token)
+async def refresh_auth_token(
+        db: db_dependency, refresh_token: Annotated[str, Cookie()], response: Response, request: Request
+):
+    user_id = decode_refresh_token(refresh_token)
     user = await get_authenticated_user(db, user_id)
 
     if user is None:
@@ -216,13 +218,13 @@ async def refresh_token(db: db_dependency, refresh_data: RefreshTokenRequest, re
     user_id = user.id
     user_email = user.email
 
-    _, is_new = await get_or_create(db, RefreshTokenBlacklist, refresh=refresh_data.refresh_token)
+    _, is_new = await get_or_create(db, RefreshTokenBlacklist, refresh=refresh_token)
     if not is_new:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Blocked refresh token.")
 
     refresh_token = create_jwt_token(user_id, user_email, "refresh", timedelta(hours=24))
     response.set_cookie(
-        key="refresh_auth",
+        key="refresh_token",
         value=refresh_token,
         httponly=True,
         secure=(not configs.DEBUG),
@@ -281,7 +283,7 @@ async def auth_by_google(db: db_dependency, request: Request, response: Response
 
     refresh_token = create_jwt_token(user.id, email, "refresh", timedelta(hours=24))
     response.set_cookie(
-        key="refresh_auth",
+        key="refresh_token",
         value=refresh_token,
         httponly=True,
         secure=(not configs.DEBUG),
