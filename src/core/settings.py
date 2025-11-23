@@ -37,6 +37,7 @@ class GlobalConfig(BaseConfig):
     CLIENT_SECRET: str
     AUTH_URI: str
     TOKEN_URI: str
+    ALLOWED_ORIGINS: list[str]
 
 
 class DevConfig(GlobalConfig):

@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 import sentry_sdk
 from fastapi import FastAPI, status, Request
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from slowapi import _rate_limit_exceeded_handler
@@ -69,6 +70,13 @@ app.include_router(user_router)
 app.include_router(auth_router)
 
 app.add_middleware(SessionMiddleware, secret_key=configs.SECRET_KEY)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=configs.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.exception_handler(StarletteHTTPException)
