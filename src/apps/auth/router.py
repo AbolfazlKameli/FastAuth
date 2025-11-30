@@ -239,7 +239,7 @@ async def refresh_auth_token(
 
 @router.get(
     "/login/google",
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
 )
 @limiter.limit("5/minute")
 async def login_by_google(request: Request, response: Response):
@@ -249,6 +249,7 @@ async def login_by_google(request: Request, response: Response):
 
 @router.get(
     "/login/google/auth",
+    response_model=DataSchema[UserTokenResponse],
     responses={
         status.HTTP_403_FORBIDDEN: {
             "model": DataSchema[ErrorResponse],
