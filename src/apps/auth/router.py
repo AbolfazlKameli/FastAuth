@@ -272,7 +272,7 @@ async def auth_by_google(db: db_dependency, request: Request, response: Response
     if user is None:
         username = userinfo.get("given_name")
         if await user_exists_with_email_or_username(db, email, username):
-            username += random.randint(1000, 9999)
+            username += str(random.randint(1000, 9999))
 
         user = await register_user(
             db,
