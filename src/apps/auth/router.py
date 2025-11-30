@@ -237,29 +237,25 @@ async def refresh_auth_token(
     return {"data": {"message": "Token Refreshed successfully.", "access_token": access_token}}
 
 
-@router.post(
+@router.get(
     "/login/google",
-    status_code=status.HTTP_200_OK,
-    responses={
-        status.HTTP_400_BAD_REQUEST: {
-            "model": DataSchema[ErrorResponse],
-            "description": "Error when email already exists."
-        },
-    }
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
 )
 @limiter.limit("5/minute")
-async def login_by_google(db: db_dependency, request: Request, request_data: UserRegisterRequest, response: Response):
-    email = str(request_data.email)
-
-    if (message := await check_blacklist_for_user(db, email)) is not None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=message)
-
+async def login_by_google(request: Request, response: Response):
     redirect_url = request.url_for("auth_by_google")
     return await oauth.google.authorize_redirect(request, redirect_url)
 
 
 @router.get(
-    "/login/google/auth"
+    "/login/google/auth",
+    response_model=DataSchema[UserTokenResponse],
+    responses={
+        status.HTTP_403_FORBIDDEN: {
+            "model": DataSchema[ErrorResponse],
+            "description": "Error when user is blacklisted."
+        },
+    }
 )
 @limiter.limit("5/minute")
 async def auth_by_google(db: db_dependency, request: Request, response: Response):
@@ -267,6 +263,9 @@ async def auth_by_google(db: db_dependency, request: Request, response: Response
     userinfo = dict(token['userinfo'])
 
     email = userinfo.get("email")
+
+    if (message := await check_blacklist_for_user(db, email)) is not None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=message)
 
     user = await get_user_by_email(db, email)
 

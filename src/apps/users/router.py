@@ -186,7 +186,7 @@ async def change_user_password(
 
 
 @router.put(
-    "/profile/update",
+    "/profile",
     status_code=status.HTTP_200_OK,
     response_model=DataSchema[SuccessResponse],
     responses={
@@ -264,7 +264,7 @@ async def activate_user_account(
 
 
 @router.delete(
-    "/profile/delete",
+    "/profile",
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
         **auth_responses
