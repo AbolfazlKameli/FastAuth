@@ -43,10 +43,14 @@ class JWTBearer(HTTPBearer):
 
             return credentials.credentials
         else:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing credentials.")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
 
 
-oauth_schema = JWTBearer()
+oauth_schema = JWTBearer(auto_error=False)
 
 oauth = OAuth()
 
@@ -270,7 +274,7 @@ async def get_admin_user(user: Annotated[User, Depends(get_authenticated_user)])
 async def get_active_user(user: Annotated[User, Depends(get_authenticated_user)]):
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive account.",
         )
     return user
