@@ -26,7 +26,7 @@ class GlobalConfig(BaseConfig):
     CELERY_RESULT_BACKEND: str = 'redis://localhost:6379/2'
     EMAIL_HOSTNAME: str
     EMAIL_PORT: int
-    EMAIL_USE_TLS: bool = True
+    EMAIL_USE_TLS: bool
     EMAIL_HOST_USERNAME: str
     EMAIL_HOST_PASSWORD: str
     TIMEZONE: str
